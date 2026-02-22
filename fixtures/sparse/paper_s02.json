@@ -1,0 +1,44 @@
+{
+  "pmid": "90001002",
+  "title": "Phase I Dose-Escalation Study",
+  "year": 2022,
+  "population": {
+    "description": "Adults with advanced solid tumors",
+    "sample_size": 48
+  },
+  "endpoints": [
+    {
+      "endpoint_phrase": "maximum tolerated dose",
+      "point_estimate": null,
+      "confidence_interval": null,
+      "p_value": null
+    },
+    {
+      "endpoint_phrase": "dose-limiting toxicity rate",
+      "point_estimate": 0.15,
+      "confidence_interval": null,
+      "p_value": null
+    }
+  ],
+  "adverse_events": [
+    {
+      "event": "nausea",
+      "severity": "moderate",
+      "mechanism_of_action": null
+    },
+    {
+      "event": "fatigue",
+      "severity": "mild",
+      "mechanism_of_action": null
+    },
+    {
+      "event": "neutropenia",
+      "severity": "severe",
+      "mechanism_of_action": "myelosuppression via DNA intercalation"
+    }
+  ],
+  "study_design": "RCT",
+  "funding_source": "PharmaCorp Inc",
+  "registration_number": "NCT00012345",
+  "limitations": null
+}

@@ -1,0 +1,39 @@
+{
+  "pmid": "23456789",
+  "title": "Efficacy of Drug B in Type 2 Diabetes Management",
+  "year": 2022,
+  "population": {
+    "description": "Adults with type 2 diabetes, HbA1c > 7%",
+    "sample_size": 520
+  },
+  "endpoints": [
+    {
+      "endpoint_phrase": "HbA1c reduction at 24 weeks",
+      "point_estimate": -1.2,
+      "confidence_interval": {
+        "lower": -1.5,
+        "upper": -0.9
+      },
+      "p_value": 0.0001
+    },
+    {
+      "endpoint_phrase": "fasting glucose reduction",
+      "point_estimate": -32.0,
+      "confidence_interval": {
+        "lower": -38.0,
+        "upper": -26.0
+      },
+      "p_value": 0.0005
+    },
+    {
+      "endpoint_phrase": "body weight change",
+      "point_estimate": -2.1,
+      "confidence_interval": {
+        "lower": -3.0,
+        "upper": -1.2
+      },
+      "p_value": 0.01
+    }
+  ],
+  "study_design": "RCT"
+}

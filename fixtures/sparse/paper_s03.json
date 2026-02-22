@@ -1,0 +1,22 @@
+{
+  "pmid": "90001003",
+  "title": "Observational Cohort of Drug Y",
+  "year": 2024,
+  "population": {
+    "description": null,
+    "sample_size": null
+  },
+  "endpoints": [
+    {
+      "endpoint_phrase": "overall survival",
+      "point_estimate": null,
+      "confidence_interval": null,
+      "p_value": null
+    }
+  ],
+  "adverse_events": null,
+  "study_design": "cohort",
+  "funding_source": null,
+  "registration_number": null,
+  "limitations": "Small sample size and short follow-up period limit generalizability"
+}

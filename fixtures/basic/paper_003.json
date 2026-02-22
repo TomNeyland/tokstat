@@ -1,0 +1,21 @@
+{
+  "pmid": "34567890",
+  "title": "Long-term Outcomes of Statin Therapy",
+  "year": 2024,
+  "population": {
+    "description": "Adults with elevated LDL cholesterol",
+    "sample_size": 1200
+  },
+  "endpoints": [
+    {
+      "endpoint_phrase": "LDL cholesterol reduction",
+      "point_estimate": -45.0,
+      "confidence_interval": {
+        "lower": -50.0,
+        "upper": -40.0
+      },
+      "p_value": 0.00001
+    }
+  ],
+  "study_design": "cohort"
+}

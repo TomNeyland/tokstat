@@ -1,0 +1,69 @@
+{
+  "pmid": "80001001",
+  "title": "Comprehensive Analysis of Cardiovascular Outcomes in Patients Receiving Novel Anticoagulant Therapy",
+  "year": 2024,
+  "population": {
+    "description": "Adults aged 50-80 with atrial fibrillation and at least two additional cardiovascular risk factors including hypertension, diabetes, or prior stroke",
+    "sample_size": 4200,
+    "inclusion_criteria": {
+      "age_range": {"min_age": 50, "max_age": 80},
+      "primary_diagnosis": "atrial fibrillation",
+      "comorbidity_requirements": ["hypertension", "diabetes", "prior stroke"]
+    },
+    "exclusion_criteria": {
+      "contraindications": ["active bleeding", "severe hepatic impairment", "pregnancy"],
+      "prior_treatments_excluded": ["mechanical heart valve replacement"]
+    }
+  },
+  "endpoints": [
+    {
+      "endpoint_phrase": "composite of stroke, systemic embolism, and cardiovascular death",
+      "endpoint_classification": "primary",
+      "point_estimate": 0.71,
+      "confidence_interval": {"lower": 0.58, "upper": 0.87},
+      "p_value": 0.001,
+      "statistical_method_description": "Cox proportional hazards regression with time-varying covariates",
+      "subgroup_analyses": [
+        {
+          "subgroup_definition": "patients with prior stroke history",
+          "point_estimate": 0.65,
+          "confidence_interval": {"lower": 0.48, "upper": 0.88}
+        },
+        {
+          "subgroup_definition": "patients aged 70 and above",
+          "point_estimate": 0.78,
+          "confidence_interval": {"lower": 0.60, "upper": 1.02}
+        }
+      ]
+    },
+    {
+      "endpoint_phrase": "major bleeding events requiring hospitalization",
+      "endpoint_classification": "safety",
+      "point_estimate": 1.12,
+      "confidence_interval": {"lower": 0.89, "upper": 1.41},
+      "p_value": 0.34,
+      "statistical_method_description": "Kaplan-Meier survival analysis with log-rank test",
+      "subgroup_analyses": []
+    }
+  ],
+  "adverse_events": [
+    {
+      "event": "gastrointestinal bleeding",
+      "severity": "moderate",
+      "mechanism_of_action": "direct inhibition of factor Xa reducing thrombin generation",
+      "incidence_rate": 0.034,
+      "time_to_onset_days": {"median": 45, "range_min": 7, "range_max": 365}
+    },
+    {
+      "event": "minor bruising",
+      "severity": "mild",
+      "mechanism_of_action": null,
+      "incidence_rate": 0.12,
+      "time_to_onset_days": {"median": 14, "range_min": 1, "range_max": 90}
+    }
+  ],
+  "study_design": "RCT",
+  "funding_source": "National Heart, Lung, and Blood Institute",
+  "registration_number": "NCT04567890",
+  "limitations": "Open-label design may introduce ascertainment bias for subjective endpoints"
+}

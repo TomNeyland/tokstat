@@ -1,0 +1,28 @@
+{
+  "pmid": "90001001",
+  "title": "Pilot Study of Novel Compound X",
+  "year": 2023,
+  "population": {
+    "description": "Healthy volunteers",
+    "sample_size": 24
+  },
+  "endpoints": [
+    {
+      "endpoint_phrase": "pharmacokinetic profile",
+      "point_estimate": null,
+      "confidence_interval": null,
+      "p_value": null
+    }
+  ],
+  "adverse_events": [
+    {
+      "event": "headache",
+      "severity": "mild",
+      "mechanism_of_action": null
+    }
+  ],
+  "study_design": "RCT",
+  "funding_source": null,
+  "registration_number": null,
+  "limitations": null
+}

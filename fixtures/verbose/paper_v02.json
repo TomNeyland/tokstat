@@ -1,0 +1,80 @@
+{
+  "pmid": "80001002",
+  "title": "Randomized Controlled Trial of Intensive Glucose-Lowering Strategy in Newly Diagnosed Type 2 Diabetes",
+  "year": 2023,
+  "population": {
+    "description": "Newly diagnosed type 2 diabetes patients with HbA1c between 7.5% and 10%, treatment naive, BMI 25-40",
+    "sample_size": 1800,
+    "inclusion_criteria": {
+      "age_range": {"min_age": 30, "max_age": 65},
+      "primary_diagnosis": "type 2 diabetes mellitus",
+      "comorbidity_requirements": []
+    },
+    "exclusion_criteria": {
+      "contraindications": ["type 1 diabetes", "gestational diabetes", "renal impairment"],
+      "prior_treatments_excluded": ["insulin therapy", "GLP-1 receptor agonists"]
+    }
+  },
+  "endpoints": [
+    {
+      "endpoint_phrase": "HbA1c reduction from baseline at 52 weeks",
+      "endpoint_classification": "primary",
+      "point_estimate": -1.8,
+      "confidence_interval": {"lower": -2.1, "upper": -1.5},
+      "p_value": 0.00001,
+      "statistical_method_description": "Mixed-effects model for repeated measures with unstructured covariance",
+      "subgroup_analyses": [
+        {
+          "subgroup_definition": "baseline HbA1c above 9%",
+          "point_estimate": -2.4,
+          "confidence_interval": {"lower": -2.9, "upper": -1.9}
+        }
+      ]
+    },
+    {
+      "endpoint_phrase": "proportion achieving HbA1c below 7%",
+      "endpoint_classification": "secondary",
+      "point_estimate": 0.68,
+      "confidence_interval": {"lower": 0.63, "upper": 0.73},
+      "p_value": 0.0001,
+      "statistical_method_description": "Logistic regression adjusted for baseline characteristics",
+      "subgroup_analyses": []
+    },
+    {
+      "endpoint_phrase": "change in body weight from baseline",
+      "endpoint_classification": "secondary",
+      "point_estimate": -3.2,
+      "confidence_interval": {"lower": -4.0, "upper": -2.4},
+      "p_value": 0.0001,
+      "statistical_method_description": "Analysis of covariance with last observation carried forward",
+      "subgroup_analyses": []
+    }
+  ],
+  "adverse_events": [
+    {
+      "event": "hypoglycemia",
+      "severity": "moderate",
+      "mechanism_of_action": "excessive insulin secretion stimulation by sulfonylurea component",
+      "incidence_rate": 0.089,
+      "time_to_onset_days": {"median": 30, "range_min": 3, "range_max": 180}
+    },
+    {
+      "event": "nausea",
+      "severity": "mild",
+      "mechanism_of_action": "GLP-1 receptor activation in the area postrema of the brainstem",
+      "incidence_rate": 0.21,
+      "time_to_onset_days": {"median": 7, "range_min": 1, "range_max": 30}
+    },
+    {
+      "event": "pancreatitis",
+      "severity": "severe",
+      "mechanism_of_action": null,
+      "incidence_rate": 0.003,
+      "time_to_onset_days": {"median": 90, "range_min": 14, "range_max": 270}
+    }
+  ],
+  "study_design": "RCT",
+  "funding_source": "European Association for the Study of Diabetes Research Grant",
+  "registration_number": "NCT04789012",
+  "limitations": null
+}
