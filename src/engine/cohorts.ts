@@ -14,19 +14,16 @@ function getJsonType(value: unknown): JsonType {
 }
 
 /**
- * Compute a schema fingerprint from a document's top-level keys and their types.
- * This captures "schema shape" without over-splitting on nested optional fields.
- * e.g., { pmid: "123", title: "foo", endpoints: [...] } → "endpoints:array|pmid:string|title:string"
+ * Compute a schema fingerprint from a document's top-level key names.
+ * Only key presence matters — not types, not values. This prevents
+ * null vs non-null splits from fragmenting the corpus into hundreds of cohorts.
+ * e.g., { title: "foo", rating: null, cast: [...] } → "cast|rating|title"
  */
 export function fingerprint(doc: unknown): string {
   if (typeof doc !== 'object' || doc === null || Array.isArray(doc)) {
     return `_root:${getJsonType(doc)}`
   }
-  const entries: string[] = []
-  for (const key of Object.keys(doc as Record<string, unknown>).sort()) {
-    entries.push(`${key}:${getJsonType((doc as Record<string, unknown>)[key])}`)
-  }
-  return entries.join('|')
+  return Object.keys(doc as Record<string, unknown>).sort().join('|')
 }
 
 /**

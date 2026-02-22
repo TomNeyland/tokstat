@@ -37,26 +37,26 @@ self.onmessage = (e: MessageEvent<WorkerInput>) => {
   // Detect cohorts
   const cohorts = detectCohorts(documents)
 
-  // Total tokenization passes: combined + per-cohort
-  const totalPasses = documents.length * (1 + cohorts.length)
+  // Report progress based on actual file count for the combined pass
   let progress = 0
+  const totalFiles = documents.length
 
   function reportProgress() {
     progress++
-    self.postMessage({ type: 'progress', filesProcessed: progress, totalFiles: totalPasses } satisfies ProgressMessage)
+    self.postMessage({ type: 'progress', filesProcessed: Math.min(progress, totalFiles), totalFiles } satisfies ProgressMessage)
   }
 
-  // Analyze combined
+  // Analyze combined (this is the pass we report progress for)
   const combined = analyzeDocuments(documents, pricing, encoding, `${files.length} uploaded files`, reportProgress)
 
-  // Analyze per cohort
+  // Analyze per cohort (silent — combined pass already covers the user-visible progress)
   const per_cohort: Record<string, AnalysisOutput> = {}
   for (const cohort of cohorts) {
     const cohortDocs = cohort.file_indices.map(i => documents[i])
     per_cohort[cohort.id] = analyzeDocuments(
       cohortDocs, pricing, encoding,
       `${cohort.label} (${cohort.file_count} files)`,
-      reportProgress,
+      () => {},
     )
   }
 
