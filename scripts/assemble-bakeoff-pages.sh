@@ -490,7 +490,7 @@ cat >"$OUT_DIR/index.html" <<'HTMLEOF'
       tokstat reads your JSON corpus, tokenizes every field, and shows you exactly where the money goes.
     </p>
     <div class="hero-cli">
-      <span class="prompt">$</span> npx tokstat <span class="path">./data/**/*.json</span>
+      <span class="prompt">$</span> npx tokstat
     </div>
 
     <div class="screenshot-slot">
