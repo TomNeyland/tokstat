@@ -385,6 +385,10 @@ cat >"$OUT_DIR/index.html" <<'HTMLEOF'
       margin: 0 auto;
     }
 
+    .build-grid.hero-builds {
+      margin-bottom: 0;
+    }
+
     a.build-card {
       display: block;
       text-decoration: none;
@@ -482,8 +486,8 @@ cat >"$OUT_DIR/index.html" <<'HTMLEOF'
     <div class="hero-badge">open source &middot; MIT license</div>
     <h1>See where your<br/><span>tokens go</span></h1>
     <p class="hero-sub">
-      Point tokstat at your LLM-generated JSON and instantly see which fields cost the most,
-      which are mostly null, and where your schema overhead is bleeding you dry.
+      You're spending hundreds on structured generation and you have no idea which fields cost what.
+      tokstat reads your JSON corpus, tokenizes every field, and shows you exactly where the money goes.
     </p>
     <div class="hero-cli">
       <span class="prompt">$</span> npx tokstat <span class="path">./data/**/*.json</span>
@@ -491,6 +495,26 @@ cat >"$OUT_DIR/index.html" <<'HTMLEOF'
 
     <div class="screenshot-slot">
       <img src="./img/claude.webp" alt="tokstat circle pack visualization showing per-field token costs" />
+    </div>
+
+    <div class="build-grid hero-builds">
+HTMLEOF
+
+# Inject the CTA build cards right in the hero
+cat >>"$OUT_DIR/index.html" <<EOF
+      <a class="build-card" href="./codex/">
+        <div class="build-label">${CODEX_LABEL}</div>
+        <div class="build-desc">Built with Codex &middot; GPT 5.3</div>
+        <div class="build-link">Try it &rarr;</div>
+      </a>
+      <a class="build-card" href="./other/">
+        <div class="build-label">${OTHER_LABEL}</div>
+        <div class="build-desc">Built with Claude Code &middot; Opus 4.6</div>
+        <div class="build-link">Try it &rarr;</div>
+      </a>
+EOF
+
+cat >>"$OUT_DIR/index.html" <<'HTMLEOF'
     </div>
   </section>
 
@@ -535,7 +559,7 @@ cat >"$OUT_DIR/index.html" <<'HTMLEOF'
   <section class="viz-modes">
     <h2>Four ways to see your data</h2>
     <p class="subtitle">
-      Every mode renders the same tree. Animated transitions between views — rectangles morph to arcs, arcs to circles. Click any node to drill in.
+      Area shows relative cost. Click any field to drill into its children. Switch views to spot different patterns.
     </p>
     <div class="mode-pills">
       <span class="mode-pill">Treemap</span>
