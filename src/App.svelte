@@ -9,6 +9,9 @@
   import SchemaDiet from './lib/components/SchemaDiet.svelte'
   import Tooltip from './lib/components/Tooltip.svelte'
   import Treemap from './lib/viz/Treemap.svelte'
+  import Sunburst from './lib/viz/Sunburst.svelte'
+  import CirclePack from './lib/viz/CirclePack.svelte'
+  import Icicle from './lib/viz/Icicle.svelte'
 
   // ── App state ──
   let vizMode = $state<'Treemap' | 'Sunburst' | 'Pack' | 'Icicle'>('Treemap')
@@ -111,16 +114,33 @@
             onhover={handleNodeHover}
             onclick={handleNodeClick}
           />
-        {:else}
-          <!-- Placeholder for other viz modes -->
-          <div class="viz-placeholder">
-            <span class="viz-mode-label">{vizMode}</span>
-            <span class="viz-mode-desc">
-              {#if vizMode === 'Sunburst'}What does the nesting look like?{/if}
-              {#if vizMode === 'Pack'}What are the outliers?{/if}
-              {#if vizMode === 'Icicle'}What's at each depth level?{/if}
-            </span>
-          </div>
+        {:else if vizMode === 'Sunburst'}
+          <Sunburst
+            root={currentNode}
+            width={vizWidth}
+            height={vizHeight}
+            {colorMode}
+            onhover={handleNodeHover}
+            onclick={handleNodeClick}
+          />
+        {:else if vizMode === 'Pack'}
+          <CirclePack
+            root={currentNode}
+            width={vizWidth}
+            height={vizHeight}
+            {colorMode}
+            onhover={handleNodeHover}
+            onclick={handleNodeClick}
+          />
+        {:else if vizMode === 'Icicle'}
+          <Icicle
+            root={currentNode}
+            width={vizWidth}
+            height={vizHeight}
+            {colorMode}
+            onhover={handleNodeHover}
+            onclick={handleNodeClick}
+          />
         {/if}
       </div>
     </main>
@@ -204,28 +224,4 @@
     z-index: 1;
   }
 
-  /* Placeholder for viz modes not yet built */
-  .viz-placeholder {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-3);
-    z-index: 1;
-  }
-
-  .viz-mode-label {
-    font-family: var(--font-display);
-    font-size: 48px;
-    color: var(--text-primary);
-    opacity: 0.15;
-  }
-
-  .viz-mode-desc {
-    font-family: var(--font-body);
-    font-size: 15px;
-    color: var(--text-tertiary);
-  }
 </style>
