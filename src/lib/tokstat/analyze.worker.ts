@@ -9,6 +9,7 @@ type AnalyzeRequest = {
     model?: string
     sampleValues?: number
     ignorePatterns?: string[]
+    costPer1k?: number | null
   }
 }
 
@@ -78,9 +79,10 @@ self.onmessage = async (event: MessageEvent<AnalyzeRequest>) => {
 
     const report = analyzeCorpusWithCohorts(records, {
       glob: message.options?.glob ?? `${total} uploaded files`,
-      model: message.options?.model ?? 'gpt-4o',
+      model: message.options?.model ?? 'gpt-5-mini',
       sampleValues: message.options?.sampleValues ?? 5,
       ignorePatterns: message.options?.ignorePatterns ?? [],
+      costPer1k: message.options?.costPer1k ?? null,
     })
 
     const done: DoneMessage = { type: 'done', requestId, report }

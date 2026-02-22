@@ -1,5 +1,6 @@
 // @ts-nocheck
 const DEFAULT_MODEL_PRICING = {
+  'gpt-5-mini': { model_id: 'gpt-5-mini', provider: 'openai', output_per_1m: 2, tokenizer: 'o200k_base' },
   'gpt-4o': { model_id: 'gpt-4o', provider: 'openai', output_per_1m: 15, tokenizer: 'o200k_base' },
   'gpt-4o-mini': { model_id: 'gpt-4o-mini', provider: 'openai', output_per_1m: 0.6, tokenizer: 'o200k_base' },
   'claude-sonnet': { model_id: 'claude-sonnet', provider: 'anthropic', output_per_1m: 15, tokenizer: 'cl100k_base' },
@@ -15,7 +16,7 @@ export function getDefaultPricingTable() {
 export function analyzeRecords(records, options = {}) {
   const {
     glob = null,
-    model = 'gpt-4o',
+    model = 'gpt-5-mini',
     tokenizer = null,
     costPer1k = null,
     sampleValues = 5,

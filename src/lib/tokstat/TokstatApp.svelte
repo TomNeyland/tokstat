@@ -3,6 +3,7 @@
   import { onMount } from 'svelte'
   import { analyzeCorpusWithCohorts } from '../../core/corpus.js'
   import { demoCorpus } from './demoCorpus'
+  import { FALLBACK_MODEL_OPTIONS, completionPer1kUsd, dedupeAndSort, fetchOpenRouterModelCatalog, type ModelOption } from './models'
   import { flattenNodes, findNode, computeLayout, describeArc, maxDepth, type ViewMode } from './layouts'
   import { nodeColorForMode, glowForColor, type ColorMode } from './colors'
   import { fmtPct, fmtTok, fmtUsd, shortPath } from './format'
@@ -17,6 +18,12 @@
   let analysisBundle = $state<any | null>(null)
   let analysisScope = $state<'combined' | 'cohort'>('combined')
   let activeCohortId = $state<string | null>(null)
+  let selectedModel = $state('gpt-5-mini')
+  let modelInput = $state('gpt-5-mini')
+  let modelCatalog = $state<ModelOption[]>(FALLBACK_MODEL_OPTIONS)
+  let modelCatalogStatus = $state<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  let modelPickerOpen = $state(false)
+  let closeModelPickerTimer: ReturnType<typeof setTimeout> | null = null
   let ignorePatterns = $state<string[]>([])
   let ignoreDraft = $state('')
   let contextMenu = $state<{ x: number; y: number; path: string } | null>(null)
@@ -102,8 +109,17 @@
   })
   const canReanalyzeWithIgnores = $derived(analysisSource !== 'embedded')
   const hasMultipleCohorts = $derived((cohorts?.length ?? 0) > 1)
+  const modelSuggestions = $derived.by(() => {
+    const q = modelInput.trim().toLowerCase()
+    const rows = q
+      ? modelCatalog.filter((row) => row.id.toLowerCase().includes(q) || row.name.toLowerCase().includes(q))
+      : modelCatalog
+    return rows.slice(0, 200)
+  })
+  const visibleModelSuggestions = $derived(modelSuggestions.slice(0, 12))
 
   onMount(() => {
+    void loadModelCatalog()
     try {
       const embedded = (window as any).__TOKSTAT_DATA__
       if (embedded) {
@@ -134,6 +150,10 @@
 
   function setAnalysisResult(next: any) {
     analysisBundle = normalizeAnalysisBundle(next)
+    if (analysisBundle?.combined?.summary?.model) {
+      selectedModel = analysisBundle.combined.summary.model
+      modelInput = analysisBundle.combined.summary.model
+    }
     if (!activeCohortId && analysisBundle.cohorts.length > 0) {
       activeCohortId = analysisBundle.cohorts[0].id
     }
@@ -186,9 +206,10 @@
       analysisSource = 'upload'
       const next = await analyzeFilesInWorker(files, {
         glob: files.length === 1 ? files[0].name : `${files.length} uploaded files`,
-        model: report?.summary?.model ?? 'gpt-4o',
+        model: selectedModel,
         sampleValues: 5,
         ignorePatterns,
+        costPer1k: selectedModelCostPer1k(),
       })
       setAnalysisResult(next)
     }
@@ -205,13 +226,14 @@
   function analyzeDemo(currentIgnorePatterns: string[]) {
     return analyzeCorpusWithCohorts(demoCorpus as any, {
       glob: 'demo/*.json',
-      model: 'gpt-4o',
+      model: selectedModel || 'gpt-5-mini',
       sampleValues: 5,
       ignorePatterns: currentIgnorePatterns,
+      costPer1k: selectedModelCostPer1k(),
     })
   }
 
-  async function analyzeFilesInWorker(files: File[], options: { glob: string; model: string; sampleValues: number; ignorePatterns?: string[] }) {
+  async function analyzeFilesInWorker(files: File[], options: { glob: string; model: string; sampleValues: number; ignorePatterns?: string[]; costPer1k?: number | null }) {
     const plainFiles = Array.from(files)
     const safeOptions = {
       ...options,
@@ -283,9 +305,10 @@
       if (analysisSource === 'upload' && uploadedFiles.length > 0) {
         nextReport = await analyzeFilesInWorker(uploadedFiles, {
           glob: uploadedFiles.length === 1 ? uploadedFiles[0].name : `${uploadedFiles.length} uploaded files`,
-          model: report?.summary?.model ?? 'gpt-4o',
+          model: selectedModel,
           sampleValues: 5,
           ignorePatterns: nextPatterns,
+          costPer1k: selectedModelCostPer1k(),
         })
       }
       else {
@@ -361,6 +384,60 @@
     const nextPatterns = ignorePatterns.filter((p) => p !== rule)
     ignorePatterns = nextPatterns
     await rerunWithIgnorePatterns(nextPatterns)
+  }
+
+  async function loadModelCatalog() {
+    modelCatalogStatus = 'loading'
+    try {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 4000)
+      const remote = await fetchOpenRouterModelCatalog(controller.signal)
+      clearTimeout(timeout)
+      modelCatalog = dedupeAndSort([...FALLBACK_MODEL_OPTIONS, ...remote])
+      modelCatalogStatus = 'ready'
+    }
+    catch {
+      modelCatalog = dedupeAndSort([...FALLBACK_MODEL_OPTIONS])
+      modelCatalogStatus = 'error'
+    }
+  }
+
+  function selectedModelCostPer1k() {
+    return completionPer1kUsd(selectedModel, modelCatalog)
+  }
+
+  async function applyModelSelection() {
+    const next = modelInput.trim()
+    if (!next) return
+    selectedModel = next
+    modelInput = next
+    modelPickerOpen = false
+    if (canReanalyzeWithIgnores) {
+      await rerunWithIgnorePatterns(ignorePatterns)
+    }
+  }
+
+  function openModelPicker() {
+    if (closeModelPickerTimer) {
+      clearTimeout(closeModelPickerTimer)
+      closeModelPickerTimer = null
+    }
+    modelPickerOpen = true
+  }
+
+  function closeModelPickerDeferred() {
+    if (closeModelPickerTimer) {
+      clearTimeout(closeModelPickerTimer)
+    }
+    closeModelPickerTimer = setTimeout(() => {
+      modelPickerOpen = false
+      closeModelPickerTimer = null
+    }, 120)
+  }
+
+  function chooseModelSuggestion(model: ModelOption) {
+    modelInput = model.id
+    void applyModelSelection()
   }
 
   function matchesSearch(node: any) {
@@ -460,9 +537,27 @@
     }
     return []
   }
+
+  function handleWindowClick(event: MouseEvent) {
+    const target = event.target
+    if (target instanceof Element && target.closest('.model-picker')) {
+      closeContextMenu()
+      return
+    }
+    closeContextMenu()
+    modelPickerOpen = false
+  }
 </script>
 
-<svelte:window onclick={closeContextMenu} onkeydown={(e) => e.key === 'Escape' && closeContextMenu()} />
+<svelte:window
+  onclick={handleWindowClick}
+  onkeydown={(e) => {
+    if (e.key === 'Escape') {
+      closeContextMenu()
+      modelPickerOpen = false
+    }
+  }}
+/>
 
 {#if !report}
   <div class="empty-state">
@@ -527,6 +622,50 @@
       <aside class="sidebar" class:collapsed={sidebarCollapsed}>
         <section class="panel">
           <h2>Controls</h2>
+          <label class="field">
+            <span>Model</span>
+            <div class="model-picker">
+              <input
+                type="text"
+                bind:value={modelInput}
+                placeholder="gpt-5-mini"
+                autocomplete="off"
+                onfocus={openModelPicker}
+                oninput={openModelPicker}
+                onblur={closeModelPickerDeferred}
+                onkeydown={(e) => e.key === 'Enter' && applyModelSelection()}
+              />
+              <button class="ghost-btn mini" onclick={applyModelSelection} disabled={loading}>Apply</button>
+              {#if modelPickerOpen && visibleModelSuggestions.length > 0}
+                <div class="model-suggest-menu">
+                  {#each visibleModelSuggestions as m}
+                    <button
+                      type="button"
+                      class="model-suggest-item"
+                      onmousedown={(e) => e.preventDefault()}
+                      onclick={() => chooseModelSuggestion(m)}
+                    >
+                      <span class="model-suggest-name">{m.name}</span>
+                      <span class="model-suggest-id">{m.id}</span>
+                    </button>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+            <div class="small-meta">
+              {#if modelCatalogStatus === 'loading'}
+                loading model catalog…
+              {:else if modelCatalogStatus === 'error'}
+                using fallback model list
+              {:else}
+                {modelCatalog.length} models available
+              {/if}
+            </div>
+            {#if selectedModelCostPer1k() != null}
+              <div class="small-meta">completion price: {fmtUsd((selectedModelCostPer1k() ?? 0) / 1000)}/token • {fmtUsd(selectedModelCostPer1k() ?? 0)}/1K</div>
+            {/if}
+          </label>
+
           <label class="field">
             <span>Search</span>
             <input type="text" bind:value={search} placeholder="field name or path" />
@@ -1235,6 +1374,67 @@
     border-radius: var(--radius-md);
     font-family: var(--font-mono);
     font-size: 12px;
+  }
+
+  .model-picker {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-2);
+    align-items: center;
+    position: relative;
+  }
+
+  .model-suggest-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 25;
+    max-height: 240px;
+    overflow: auto;
+    border: 1px solid var(--border-default);
+    background: rgba(26, 26, 33, 0.98);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(10px);
+    padding: var(--space-1);
+  }
+
+  .model-suggest-item {
+    width: 100%;
+    border: 1px solid transparent;
+    background: transparent;
+    color: inherit;
+    border-radius: var(--radius-sm);
+    padding: var(--space-2);
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    cursor: pointer;
+  }
+
+  .model-suggest-item:hover {
+    background: var(--bg-elevated);
+    border-color: var(--border-subtle);
+  }
+
+  .model-suggest-name {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .model-suggest-id {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .field input[type='range'] {

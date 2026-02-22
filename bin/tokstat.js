@@ -18,7 +18,7 @@ async function main() {
   }
 
   const format = String(flags.format ?? 'interactive')
-  const model = String(flags.model ?? 'gpt-4o')
+  const model = String(flags.model ?? 'gpt-5-mini')
   const tokenizer = flags.tokenizer ? String(flags.tokenizer) : null
   const out = flags.out ? String(flags.out) : null
   const sampleValues = flags['sample-values'] ? Number(flags['sample-values']) : 5
@@ -106,7 +106,7 @@ function printHelp(error) {
   }
   process.stdout.write(`tokstat <glob> [options]\n\n`)
   process.stdout.write(`Options:\n`)
-  process.stdout.write(`  --model <model>         Model for cost estimation (default: gpt-4o)\n`)
+  process.stdout.write(`  --model <model>         Model for cost estimation (default: gpt-5-mini)\n`)
   process.stdout.write(`  --format <fmt>          interactive | json | llm (default: interactive)\n`)
   process.stdout.write(`  --tokenizer <enc>       Override tokenizer label\n`)
   process.stdout.write(`  --out <path>            Write output to file\n`)
