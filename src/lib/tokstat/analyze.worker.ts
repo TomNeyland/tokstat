@@ -1,4 +1,4 @@
-import { analyzeRecords } from '../../core/analyze.js'
+import { analyzeCorpusWithCohorts } from '../../core/corpus.js'
 
 type AnalyzeRequest = {
   type: 'analyze'
@@ -76,7 +76,7 @@ self.onmessage = async (event: MessageEvent<AnalyzeRequest>) => {
     }
     self.postMessage(analyzeProgress)
 
-    const report = analyzeRecords(records, {
+    const report = analyzeCorpusWithCohorts(records, {
       glob: message.options?.glob ?? `${total} uploaded files`,
       model: message.options?.model ?? 'gpt-4o',
       sampleValues: message.options?.sampleValues ?? 5,

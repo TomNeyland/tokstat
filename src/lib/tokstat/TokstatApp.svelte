@@ -1,7 +1,7 @@
 <script lang="ts">
   import { fade } from 'svelte/transition'
   import { onMount } from 'svelte'
-  import { analyzeRecords } from '../../core/analyze.js'
+  import { analyzeCorpusWithCohorts } from '../../core/corpus.js'
   import { demoCorpus } from './demoCorpus'
   import { flattenNodes, findNode, computeLayout, describeArc, maxDepth, type ViewMode } from './layouts'
   import { nodeColorForMode, glowForColor, type ColorMode } from './colors'
@@ -14,6 +14,9 @@
   let activeUploadRequestId = 0
   let analysisSource = $state<'demo' | 'upload' | 'embedded'>('demo')
   let uploadedFiles = $state<File[]>([])
+  let analysisBundle = $state<any | null>(null)
+  let analysisScope = $state<'combined' | 'cohort'>('combined')
+  let activeCohortId = $state<string | null>(null)
   let ignorePatterns = $state<string[]>([])
   let ignoreDraft = $state('')
   let contextMenu = $state<{ x: number; y: number; path: string } | null>(null)
@@ -35,6 +38,8 @@
   let cutSelection = $state<Record<string, boolean>>({})
 
   const allNodes = $derived(report ? flattenNodes(report.tree) : [])
+  const cohorts = $derived(analysisBundle?.cohorts ?? [])
+  const activeCohort = $derived(cohorts.find((c: any) => c.id === activeCohortId) ?? null)
   const insights = $derived(report?.insights ?? [])
   const insightMap = $derived.by(() => {
     const map = new Map<string, any[]>()
@@ -96,30 +101,75 @@
       .slice(0, 12)
   })
   const canReanalyzeWithIgnores = $derived(analysisSource !== 'embedded')
+  const hasMultipleCohorts = $derived((cohorts?.length ?? 0) > 1)
 
   onMount(() => {
     try {
       const embedded = (window as any).__TOKSTAT_DATA__
       if (embedded) {
         analysisSource = 'embedded'
-        setReport(embedded)
+        setAnalysisResult(embedded)
         return
       }
       analysisSource = 'demo'
       const demoReport = analyzeDemo(ignorePatterns)
-      setReport(demoReport)
+      setAnalysisResult(demoReport)
     }
     catch (e: any) {
       error = e?.message ?? String(e)
     }
   })
 
-  function setReport(next: any) {
-    report = next
+  function normalizeAnalysisBundle(next: any) {
+    if (next && next.schema === 'tokstat/corpus-bundle/v1' && next.combined) {
+      return next
+    }
+    return {
+      schema: 'tokstat/corpus-bundle/v1',
+      combined: next,
+      cohorts: [],
+      cohorting: { enabled: false, file_count: next?.summary?.file_count ?? 0, cohort_count: 0, mixed_schema_detected: false },
+    }
+  }
+
+  function setAnalysisResult(next: any) {
+    analysisBundle = normalizeAnalysisBundle(next)
+    if (!activeCohortId && analysisBundle.cohorts.length > 0) {
+      activeCohortId = analysisBundle.cohorts[0].id
+    }
+    if (analysisScope === 'cohort' && !analysisBundle.cohorts.some((c: any) => c.id === activeCohortId)) {
+      analysisScope = 'combined'
+    }
+    report = resolveScopedReport()
     rootPath = 'root'
     selectedPath = 'root'
     error = null
     cutSelection = {}
+  }
+
+  function resolveScopedReport() {
+    if (!analysisBundle) return null
+    if (analysisScope === 'cohort' && activeCohortId) {
+      const cohort = analysisBundle.cohorts.find((c: any) => c.id === activeCohortId)
+      if (cohort) return cohort.report
+    }
+    return analysisBundle.combined
+  }
+
+  function setAnalysisScope(nextScope: 'combined' | 'cohort') {
+    analysisScope = nextScope
+    report = resolveScopedReport()
+    rootPath = 'root'
+    selectedPath = 'root'
+  }
+
+  function setActiveCohort(nextId: string) {
+    activeCohortId = nextId
+    if (analysisScope === 'cohort') {
+      report = resolveScopedReport()
+      rootPath = 'root'
+      selectedPath = 'root'
+    }
   }
 
   async function handleFiles(event: Event) {
@@ -140,7 +190,7 @@
         sampleValues: 5,
         ignorePatterns,
       })
-      setReport(next)
+      setAnalysisResult(next)
     }
     catch (e: any) {
       error = e?.message ?? String(e)
@@ -153,7 +203,7 @@
   }
 
   function analyzeDemo(currentIgnorePatterns: string[]) {
-    return analyzeRecords(demoCorpus as any, {
+    return analyzeCorpusWithCohorts(demoCorpus as any, {
       glob: 'demo/*.json',
       model: 'gpt-4o',
       sampleValues: 5,
@@ -173,7 +223,7 @@
       const records = await Promise.all(
         plainFiles.map(async (file) => ({ path: file.name, parsed: JSON.parse(await file.text()) })),
       )
-      return analyzeRecords(records, safeOptions)
+      return analyzeCorpusWithCohorts(records, safeOptions)
     }
 
     const requestId = ++activeUploadRequestId
@@ -241,7 +291,7 @@
       else {
         nextReport = analyzeDemo(nextPatterns)
       }
-      setReport(nextReport)
+      setAnalysisResult(nextReport)
     }
     catch (e: any) {
       error = e?.message ?? String(e)
@@ -432,6 +482,12 @@
             <button class="toggle" class:active={viewMode === mode} onclick={() => cycleView(mode as ViewMode)}>{mode}</button>
           {/each}
         </div>
+        {#if hasMultipleCohorts}
+          <div class="scope-toggles">
+            <button class="toggle" class:active={analysisScope === 'combined'} onclick={() => setAnalysisScope('combined')}>combined</button>
+            <button class="toggle" class:active={analysisScope === 'cohort'} onclick={() => setAnalysisScope('cohort')}>cohort</button>
+          </div>
+        {/if}
       </div>
 
       <div class="summary-strip">
@@ -493,7 +549,33 @@
           </label>
           <div class="small-meta">{report.summary.model} • {report.summary.tokenizer}</div>
           <div class="small-meta">{report.summary.glob ?? 'browser upload'}</div>
+          {#if analysisScope === 'cohort' && activeCohort}
+            <div class="small-meta">scope: {activeCohort.label} ({activeCohort.file_count} files)</div>
+          {:else}
+            <div class="small-meta">scope: combined corpus{analysisBundle?.combined?.summary?.file_count ? ` (${analysisBundle.combined.summary.file_count} files)` : ''}</div>
+          {/if}
         </section>
+
+        {#if hasMultipleCohorts}
+          <section class="panel">
+            <h2>Schema Cohorts</h2>
+            <div class="small-meta">{cohorts.length} auto-detected schema groups. Analyze combined or isolate a cohort.</div>
+            <div class="cohort-list">
+              {#each cohorts as cohort}
+                <button
+                  class="cohort-item"
+                  class:active={analysisScope === 'cohort' && activeCohortId === cohort.id}
+                  onclick={() => { setActiveCohort(cohort.id); setAnalysisScope('cohort') }}
+                >
+                  <span class="cohort-name">{cohort.label}</span>
+                  <span class="cohort-meta">{cohort.file_count} files • {fmtTok(cohort.report.tree.tokens.total.avg)}/inst • {fmtPct(cohort.report.summary.overhead_ratio)} overhead</span>
+                  <span class="cohort-files">{cohort.sample_files.join(', ')}</span>
+                </button>
+              {/each}
+            </div>
+            <button class="ghost-btn" style="margin-top:8px; width:100%;" onclick={() => setAnalysisScope('combined')}>Use Combined View</button>
+          </section>
+        {/if}
 
         <section class="panel">
           <h2>Ignore Fields</h2>
@@ -974,6 +1056,15 @@
     gap: 2px;
   }
 
+  .scope-toggles {
+    display: inline-flex;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: var(--space-0-5);
+    gap: 2px;
+  }
+
   .toggle {
     border: 0;
     background: transparent;
@@ -1181,6 +1272,59 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .cohort-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    max-height: 220px;
+    overflow: auto;
+  }
+
+  .cohort-item {
+    width: 100%;
+    text-align: left;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+    border-radius: var(--radius-md);
+    padding: var(--space-2);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    cursor: pointer;
+    transition: border-color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
+  }
+
+  .cohort-item:hover {
+    border-color: var(--border-strong);
+  }
+
+  .cohort-item.active {
+    border-color: color-mix(in srgb, var(--accent) 40%, var(--border-default));
+    background: color-mix(in srgb, var(--accent-muted) 40%, var(--bg-elevated));
+  }
+
+  .cohort-name {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .cohort-meta,
+  .cohort-files {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cohort-files {
+    color: var(--text-tertiary);
   }
 
   .ignore-add {
