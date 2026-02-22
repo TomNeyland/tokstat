@@ -139,6 +139,10 @@ export interface AnalysisSummary {
   tokenizer: string
   output_price_per_1m: number
 
+  // Corpus totals
+  corpus_total_tokens: number     // avg_tokens_per_instance * file_count
+  corpus_total_cost: number       // cost_per_instance * file_count
+
   // Headline numbers
   avg_tokens_per_instance: number
   cost_per_instance: number

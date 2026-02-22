@@ -147,6 +147,9 @@
     font-size: 11px;
     font-weight: 500;
     fill: var(--text-primary);
+    paint-order: stroke fill;
+    stroke: rgba(0,0,0,0.5);
+    stroke-width: 3px;
     pointer-events: none;
   }
 

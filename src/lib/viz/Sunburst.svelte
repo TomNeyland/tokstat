@@ -42,6 +42,21 @@
     return h.descendants().filter(d => d.depth > 0)
   })
 
+  // ── Max depth in layout (for shallow-schema detection) ──
+  let maxDepth = $derived(Math.max(...layoutNodes.map(n => n.depth)))
+
+  // ── Sibling index map for shallow-depth differentiation ──
+  let siblingIndexMap = $derived.by(() => {
+    const map = new Map<string, number>()
+    for (const node of layoutNodes) {
+      const siblings = node.parent?.children
+      if (siblings) {
+        map.set(node.data.path, siblings.indexOf(node))
+      }
+    }
+    return map
+  })
+
   // ── Cost normalization ──
   let costNormMap = $derived.by(() => {
     const costs = layoutNodes.map(n => n.data.cost.per_instance)
@@ -131,6 +146,8 @@
       {@const glow = glowParams(t)}
       {@const hovered = hoveredPath === node.data.path}
       {@const label = labelPos(node)}
+      {@const siblingIdx = siblingIndexMap.get(node.data.path) ?? 0}
+      {@const shallowOpacity = maxDepth <= 2 ? (siblingIdx % 2 === 0 ? 1 : 0.85) : 1}
 
       <g
         class="arc-node"
@@ -153,7 +170,8 @@
           d={arcPath(node)}
           fill={color}
           stroke="var(--bg-root)"
-          stroke-width="1"
+          stroke-width="1.5"
+          opacity={shallowOpacity}
           style="{glow.radius > 0 ? `filter: drop-shadow(0 0 ${glow.radius}px ${color});` : ''} cursor: pointer; transition: opacity 50ms;"
         />
         {#if showLabel(node)}
@@ -200,6 +218,9 @@
     font-size: 10px;
     font-weight: 500;
     fill: var(--bg-root);
+    paint-order: stroke fill;
+    stroke: rgba(0,0,0,0.5);
+    stroke-width: 3px;
     pointer-events: none;
   }
 </style>

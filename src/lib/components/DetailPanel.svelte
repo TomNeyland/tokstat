@@ -2,7 +2,6 @@
   import type { AnalysisNode, Insight } from '../../engine/types'
   import Badge from './Badge.svelte'
   import TokenBar from './TokenBar.svelte'
-  import FillRate from './FillRate.svelte'
 
   interface Props {
     node: AnalysisNode
@@ -44,50 +43,40 @@
         />
       </div>
 
-      <!-- Stats Table -->
+      <!-- Stats Grid (2-column) -->
       <div class="section">
-        <span class="section-label">Token Statistics</span>
-        <div class="stats-table">
-          <div class="stats-row">
+        <div class="stats-grid">
+          <div class="stats-cell">
             <span class="stats-key">avg</span>
             <span class="stats-val">{Math.round(node.tokens.total.avg)} tok</span>
           </div>
-          <div class="stats-row">
-            <span class="stats-key">min</span>
-            <span class="stats-val">{Math.round(node.tokens.total.min)} tok</span>
-          </div>
-          <div class="stats-row">
-            <span class="stats-key">max</span>
-            <span class="stats-val">{Math.round(node.tokens.total.max)} tok</span>
-          </div>
-          <div class="stats-row">
+          <div class="stats-cell">
             <span class="stats-key">p50</span>
             <span class="stats-val">{Math.round(node.tokens.total.p50)} tok</span>
           </div>
-          <div class="stats-row">
+          <div class="stats-cell">
             <span class="stats-key">p95</span>
             <span class="stats-val">{Math.round(node.tokens.total.p95)} tok</span>
           </div>
-        </div>
-      </div>
-
-      <!-- Fill Rate -->
-      <div class="section">
-        <span class="section-label">Fill Rate</span>
-        <FillRate rate={node.fill_rate} />
-      </div>
-
-      <!-- Cost -->
-      <div class="section">
-        <span class="section-label">Cost</span>
-        <div class="stats-table">
-          <div class="stats-row">
-            <span class="stats-key">per instance</span>
-            <span class="stats-val cost">${node.cost.per_instance.toFixed(5)}</span>
+          <div class="stats-cell">
+            <span class="stats-key">max</span>
+            <span class="stats-val">{Math.round(node.tokens.total.max)} tok</span>
           </div>
-          <div class="stats-row">
-            <span class="stats-key">total corpus</span>
-            <span class="stats-val cost">${node.cost.total_corpus.toFixed(4)}</span>
+          <div class="stats-cell">
+            <span class="stats-key">fill rate</span>
+            <span class="stats-val">{Math.round(node.fill_rate * 100)}%</span>
+          </div>
+          <div class="stats-cell">
+            <span class="stats-key">/inst cost</span>
+            <span class="stats-val cost">${node.cost.per_instance.toFixed(4)}</span>
+          </div>
+          <div class="stats-cell">
+            <span class="stats-key">corpus tok</span>
+            <span class="stats-val">{Math.round(node.cost.total_corpus / (node.cost.per_instance > 0 ? node.cost.per_instance : 1) * node.tokens.total.avg).toLocaleString()}</span>
+          </div>
+          <div class="stats-cell">
+            <span class="stats-key">corpus cost</span>
+            <span class="stats-val cost">${node.cost.total_corpus.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -251,6 +240,19 @@
     color: var(--text-tertiary);
     text-transform: uppercase;
     letter-spacing: 0.08em;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-1) var(--space-4);
+  }
+
+  .stats-cell {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: var(--space-1) 0;
   }
 
   .stats-table {

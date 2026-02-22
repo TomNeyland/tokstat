@@ -1,34 +1,35 @@
 <script lang="ts">
-  import ToggleGroup from './ToggleGroup.svelte'
+  import type { AnalysisSummary, AnalysisNode } from '../../engine/types'
+  import CorpusOverview from './CorpusOverview.svelte'
 
-  type VizMode = 'Treemap' | 'Sunburst' | 'Pack' | 'Icicle'
   type ColorMode = 'Cost' | 'Fill rate' | 'Overhead' | 'Depth'
 
   interface Props {
-    vizMode: VizMode
     colorMode: ColorMode
     model: string
     collapsed: boolean
-    onvizchange: (mode: string) => void
+    summary: AnalysisSummary
+    tree: AnalysisNode
     oncolorchange: (mode: string) => void
     onmodelchange: (model: string) => void
     ontogglecollapse: () => void
     ontogglediet: () => void
+    ontoggleignore: () => void
   }
 
   let {
-    vizMode,
     colorMode,
     model,
     collapsed,
-    onvizchange,
+    summary,
+    tree,
     oncolorchange,
     onmodelchange,
     ontogglecollapse,
     ontogglediet,
+    ontoggleignore,
   }: Props = $props()
 
-  const vizOptions: VizMode[] = ['Treemap', 'Sunburst', 'Pack', 'Icicle']
   const colorOptions: ColorMode[] = ['Cost', 'Fill rate', 'Overhead', 'Depth']
   const models = ['gpt-4o', 'gpt-4o-mini', 'claude-sonnet-4-5', 'claude-haiku-3-5']
 </script>
@@ -46,26 +47,11 @@
 
   {#if !collapsed}
     <div class="section">
-      <span class="section-label">Layout</span>
-      <div class="toggle-column">
-        {#each vizOptions as opt}
-          <button
-            class="sidebar-option"
-            class:active={vizMode === opt}
-            onclick={() => onvizchange(opt)}
-          >
-            {opt}
-          </button>
-        {/each}
-      </div>
-    </div>
-
-    <div class="section">
-      <span class="section-label">Color</span>
-      <div class="toggle-column">
+      <span class="section-label">Color Mode</span>
+      <div class="color-grid">
         {#each colorOptions as opt}
           <button
-            class="sidebar-option"
+            class="color-option"
             class:active={colorMode === opt}
             onclick={() => oncolorchange(opt)}
           >
@@ -82,16 +68,28 @@
           <option value={m}>{m}</option>
         {/each}
       </select>
+      <span class="model-info">{summary.tokenizer} • {summary.file_count} files</span>
     </div>
 
-    <div class="section">
-      <button class="diet-btn" onclick={ontogglediet}>
+    <div class="section button-row">
+      <button class="action-btn" onclick={ontogglediet}>
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
           <path d="M4 10h12M4 6h12M4 14h8" />
         </svg>
         Schema Diet
       </button>
+      <button class="action-btn" onclick={ontoggleignore}>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
+          <circle cx="10" cy="10" r="7" />
+          <line x1="6" y1="6" x2="14" y2="14" />
+        </svg>
+        Ignore Fields
+      </button>
     </div>
+
+    <div class="divider"></div>
+
+    <CorpusOverview {summary} {tree} />
   {/if}
 </aside>
 
@@ -103,9 +101,10 @@
     display: flex;
     flex-direction: column;
     padding: var(--space-4);
-    gap: var(--space-6);
+    gap: var(--space-5);
     transition: width var(--duration-normal) var(--ease-out);
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     flex-shrink: 0;
   }
 
@@ -155,35 +154,36 @@
     letter-spacing: 0.08em;
   }
 
-  .toggle-column {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-0-5);
+  .color-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-1);
   }
 
-  .sidebar-option {
-    text-align: left;
-    font-size: 13px;
+  .color-option {
+    font-size: 12px;
     font-weight: 500;
     color: var(--text-secondary);
-    padding: var(--space-1-5) var(--space-3);
+    padding: var(--space-1-5) var(--space-2);
     border-radius: var(--radius-md);
     background: none;
-    border: none;
+    border: 1px solid var(--border-subtle);
     cursor: pointer;
+    text-align: center;
     transition: color var(--duration-instant),
-                background var(--duration-instant);
+                background var(--duration-instant),
+                border-color var(--duration-instant);
   }
 
-  .sidebar-option:hover {
+  .color-option:hover {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--border-default);
   }
 
-  .sidebar-option.active {
+  .color-option.active {
     color: var(--text-primary);
-    background: var(--bg-elevated);
-    box-shadow: inset 3px 0 0 var(--accent);
+    background: var(--accent-muted);
+    border-color: var(--accent);
   }
 
   .model-select {
@@ -208,7 +208,17 @@
     color: var(--text-primary);
   }
 
-  .diet-btn {
+  .model-info {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-tertiary);
+  }
+
+  .button-row {
+    gap: var(--space-1);
+  }
+
+  .action-btn {
     display: flex;
     align-items: center;
     gap: var(--space-2);
@@ -225,8 +235,14 @@
     transition: color var(--duration-instant), border-color var(--duration-instant);
   }
 
-  .diet-btn:hover {
+  .action-btn:hover {
     color: var(--text-primary);
     border-color: var(--border-default);
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 0 calc(-1 * var(--space-4));
   }
 </style>

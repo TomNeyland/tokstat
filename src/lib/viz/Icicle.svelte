@@ -148,6 +148,9 @@
     font-size: 11px;
     font-weight: 500;
     fill: var(--bg-root);
+    paint-order: stroke fill;
+    stroke: rgba(0,0,0,0.5);
+    stroke-width: 3px;
     pointer-events: none;
   }
 
@@ -157,6 +160,9 @@
     font-weight: 400;
     fill: var(--bg-root);
     opacity: 0.7;
+    paint-order: stroke fill;
+    stroke: rgba(0,0,0,0.5);
+    stroke-width: 3px;
     pointer-events: none;
   }
 </style>

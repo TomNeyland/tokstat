@@ -70,12 +70,17 @@ export function runPipeline(options: CliOptions): AnalysisOutput {
   const totalOverhead = tree.tokens.schema_overhead
   const totalNullWaste = tree.tokens.null_waste
 
+  const corpusTotalTokens = avgTokens * files.length
+  const corpusTotalCost = costPerInstance * files.length
+
   const summary = {
     file_count: files.length,
     glob: options.glob,
     model: pricing.model_id,
     tokenizer: tokenizerName,
     output_price_per_1m: pricing.output_per_1m,
+    corpus_total_tokens: corpusTotalTokens,
+    corpus_total_cost: corpusTotalCost,
     avg_tokens_per_instance: avgTokens,
     cost_per_instance: costPerInstance,
     overhead_ratio: avgTokens > 0 ? totalOverhead / avgTokens : 0,

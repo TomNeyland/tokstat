@@ -1,11 +1,22 @@
 <script lang="ts">
+  import type { AnalysisSummary } from '../../engine/types'
+
   interface Props {
     segments: string[]
-    cost: string
+    summary: AnalysisSummary
+    currentCostPerInstance: number
+    currentCorpusCost: number
+    depth: number
     onnavigate: (index: number) => void
   }
 
-  let { segments, cost, onnavigate }: Props = $props()
+  let { segments, summary, currentCostPerInstance, currentCorpusCost, depth, onnavigate }: Props = $props()
+
+  let corpusCost = $derived('$' + currentCorpusCost.toFixed(2) + ' corpus')
+  let instCost = $derived('$' + currentCostPerInstance.toFixed(4) + '/instance')
+  let corpusTokens = $derived(Math.round(summary.corpus_total_tokens).toLocaleString() + ' tok corpus')
+  let instTokens = $derived(Math.round(summary.avg_tokens_per_instance).toLocaleString() + ' tok/instance')
+  let levels = $derived(depth + ' levels')
 </script>
 
 <div class="breadcrumb-bar">
@@ -23,7 +34,17 @@
       </button>
     {/each}
   </div>
-  <span class="cost">{cost}</span>
+  <div class="context">
+    <span class="ctx-item">{corpusCost}</span>
+    <span class="ctx-dot">•</span>
+    <span class="ctx-item">{instCost}</span>
+    <span class="ctx-dot">•</span>
+    <span class="ctx-item">{corpusTokens}</span>
+    <span class="ctx-dot">•</span>
+    <span class="ctx-item">{instTokens}</span>
+    <span class="ctx-dot">•</span>
+    <span class="ctx-item">{levels}</span>
+  </div>
 </div>
 
 <style>
@@ -31,16 +52,18 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 36px;
+    min-height: 36px;
     background: var(--bg-surface);
     border-top: 1px solid var(--border-subtle);
-    padding: 0 var(--space-4);
+    padding: var(--space-1) var(--space-4);
+    gap: var(--space-4);
   }
 
   .path {
     display: flex;
     align-items: center;
     gap: var(--space-2);
+    flex-shrink: 0;
   }
 
   .segment {
@@ -68,9 +91,22 @@
     font-size: 14px;
   }
 
-  .cost {
+  .context {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-shrink: 0;
+  }
+
+  .ctx-item {
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  .ctx-dot {
+    font-size: 10px;
+    color: var(--text-ghost);
   }
 </style>

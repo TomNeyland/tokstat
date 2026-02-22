@@ -379,6 +379,8 @@ export const mockSummary: AnalysisSummary = {
   model: 'gpt-4o',
   tokenizer: 'o200k_base',
   output_price_per_1m: 10.0,
+  corpus_total_tokens: 11011,  // 847 * 13
+  corpus_total_cost: 0.11011,  // 0.00847 * 13
   avg_tokens_per_instance: 847,
   cost_per_instance: 0.00847,
   overhead_ratio: 0.368,

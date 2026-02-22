@@ -17,9 +17,25 @@
     insights?: Insight[]
     onhover: (node: AnalysisNode | null, x: number, y: number) => void
     onclick: (node: AnalysisNode) => void
+    oncontextmenu?: (node: AnalysisNode, x: number, y: number) => void
   }
 
-  let { root, vizMode, colorMode, width, height, insights = [], onhover, onclick }: Props = $props()
+  let { root, vizMode, colorMode, width, height, insights = [], onhover, onclick, oncontextmenu }: Props = $props()
+
+  // Track last hovered node for context menu
+  let lastHoveredNode = $state<AnalysisNode | null>(null)
+
+  function wrappedHover(node: AnalysisNode | null, x: number, y: number) {
+    lastHoveredNode = node
+    onhover(node, x, y)
+  }
+
+  function handleContextMenu(e: MouseEvent) {
+    if (lastHoveredNode && oncontextmenu) {
+      e.preventDefault()
+      oncontextmenu(lastHoveredNode, e.clientX, e.clientY)
+    }
+  }
 
   // ── Transition state ──
   let prevMode = $state<VizMode>(vizMode)
@@ -44,30 +60,31 @@
   let showPrev = $derived(transitioning && prevMode !== vizMode)
 </script>
 
-<div class="viz-container">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="viz-container" oncontextmenu={handleContextMenu}>
   {#if showPrev}
     <div class="viz-layer exiting">
       {#if prevMode === 'Treemap'}
-        <Treemap {root} {width} {height} {colorMode} {insights} {onhover} {onclick} />
+        <Treemap {root} {width} {height} {colorMode} {insights} onhover={wrappedHover} {onclick} />
       {:else if prevMode === 'Sunburst'}
-        <Sunburst {root} {width} {height} {colorMode} {insights} {onhover} {onclick} />
+        <Sunburst {root} {width} {height} {colorMode} {insights} onhover={wrappedHover} {onclick} />
       {:else if prevMode === 'Pack'}
-        <CirclePack {root} {width} {height} {colorMode} {insights} {onhover} {onclick} />
+        <CirclePack {root} {width} {height} {colorMode} {insights} onhover={wrappedHover} {onclick} />
       {:else if prevMode === 'Icicle'}
-        <Icicle {root} {width} {height} {colorMode} {insights} {onhover} {onclick} />
+        <Icicle {root} {width} {height} {colorMode} {insights} onhover={wrappedHover} {onclick} />
       {/if}
     </div>
   {/if}
 
   <div class="viz-layer" class:entering={transitioning}>
       {#if vizMode === 'Treemap'}
-        <Treemap {root} {width} {height} {colorMode} {insights} {onhover} {onclick} />
+        <Treemap {root} {width} {height} {colorMode} {insights} onhover={wrappedHover} {onclick} />
       {:else if vizMode === 'Sunburst'}
-        <Sunburst {root} {width} {height} {colorMode} {insights} {onhover} {onclick} />
+        <Sunburst {root} {width} {height} {colorMode} {insights} onhover={wrappedHover} {onclick} />
       {:else if vizMode === 'Pack'}
-        <CirclePack {root} {width} {height} {colorMode} {insights} {onhover} {onclick} />
+        <CirclePack {root} {width} {height} {colorMode} {insights} onhover={wrappedHover} {onclick} />
       {:else if vizMode === 'Icicle'}
-        <Icicle {root} {width} {height} {colorMode} {insights} {onhover} {onclick} />
+        <Icicle {root} {width} {height} {colorMode} {insights} onhover={wrappedHover} {onclick} />
       {/if}
     </div>
 </div>

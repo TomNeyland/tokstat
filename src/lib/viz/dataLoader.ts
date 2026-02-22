@@ -1,4 +1,6 @@
 import type { AnalysisOutput } from '../../engine/types'
+import type { WorkerMessage } from '../../engine/worker'
+import AnalysisWorker from '../../engine/worker?worker&inline'
 
 // Vite's `define` replaces this identifier with the literal JSON string at
 // serve/build time. When running `vite dev` without the tokstat CLI, this
@@ -31,4 +33,44 @@ export function loadAnalysisData(): AnalysisOutput | null {
 
   // No data available
   return null
+}
+
+/**
+ * Create a Web Worker pipeline for browser-local analysis.
+ * Returns typed callbacks for progress and result events.
+ */
+export function createWorkerPipeline(): {
+  analyze: (files: { name: string; content: string }[], model: string) => void
+  onprogress: (cb: (processed: number, total: number) => void) => void
+  onresult: (cb: (data: AnalysisOutput) => void) => void
+  terminate: () => void
+} {
+  const worker: Worker = new AnalysisWorker()
+
+  let progressCb: ((processed: number, total: number) => void) | null = null
+  let resultCb: ((data: AnalysisOutput) => void) | null = null
+
+  worker.onmessage = (e: MessageEvent<WorkerMessage>) => {
+    const msg = e.data
+    if (msg.type === 'progress' && progressCb) {
+      progressCb(msg.filesProcessed, msg.totalFiles)
+    } else if (msg.type === 'result' && resultCb) {
+      resultCb(msg.data)
+    }
+  }
+
+  return {
+    analyze(files, model) {
+      worker.postMessage({ files, model })
+    },
+    onprogress(cb) {
+      progressCb = cb
+    },
+    onresult(cb) {
+      resultCb = cb
+    },
+    terminate() {
+      worker.terminate()
+    },
+  }
 }

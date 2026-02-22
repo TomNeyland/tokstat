@@ -22,9 +22,13 @@
       <span class="title">{node.path}</span>
       <Badge type={node.type} />
     </div>
-    <span class="subtitle">{Math.round(node.fill_rate * 100)}% fill rate</span>
+    <span class="subtitle">{Math.round(node.fill_rate * 100)}% fill • ${node.cost.total_corpus.toFixed(2)} corpus • ${node.cost.per_instance.toFixed(4)}/inst</span>
     <div class="divider"></div>
     <div class="stats">
+      <div class="stat">
+        <span class="stat-label">corpus</span>
+        <span class="stat-value">{Math.round(node.tokens.total.avg * node.instance_count).toLocaleString()} tok</span>
+      </div>
       <div class="stat">
         <span class="stat-label">avg</span>
         <span class="stat-value">{Math.round(node.tokens.total.avg)} tok</span>
@@ -34,12 +38,12 @@
         <span class="stat-value">{Math.round(node.tokens.total.p95)} tok</span>
       </div>
       <div class="stat">
-        <span class="stat-label">max</span>
-        <span class="stat-value">{Math.round(node.tokens.total.max)} tok</span>
+        <span class="stat-label">schema</span>
+        <span class="stat-value">{Math.round(node.tokens.schema_overhead)} tok</span>
       </div>
       <div class="stat">
-        <span class="stat-label">cost</span>
-        <span class="stat-value">${node.cost.per_instance.toFixed(4)}</span>
+        <span class="stat-label">null</span>
+        <span class="stat-value">{node.tokens.null_waste.toFixed(1)} tok</span>
       </div>
     </div>
     <div class="divider"></div>
