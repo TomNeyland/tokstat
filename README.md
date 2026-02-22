@@ -5,7 +5,7 @@ A beautiful, interactive explorer for the token economics of your LLM-generated 
 Point it at a corpus of structured outputs and see exactly where your tokens — and dollars — are going. Treemap, sunburst, circle pack, or icicle chart. Click into any field to drill down. Animated transitions between views. Every interaction designed to make schema auditing something you want to do, not something you have to.
 
 ```bash
-npx tokstat ./data/**/*.json
+npx tokstat
 ```
 
 ## Bakeoff
