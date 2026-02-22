@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import type { AnalysisNode } from './engine/types'
   import { mockOutput } from './lib/viz/mockData'
   import TopBar from './lib/components/TopBar.svelte'
@@ -7,6 +8,7 @@
   import DetailPanel from './lib/components/DetailPanel.svelte'
   import SchemaDiet from './lib/components/SchemaDiet.svelte'
   import Tooltip from './lib/components/Tooltip.svelte'
+  import Treemap from './lib/viz/Treemap.svelte'
 
   // ── App state ──
   let vizMode = $state<'Treemap' | 'Sunburst' | 'Pack' | 'Icicle'>('Treemap')
@@ -17,7 +19,6 @@
 
   // ── Data ──
   const data = mockOutput
-  let rootNode = $state<AnalysisNode>(data.tree)
   let drillPath = $state<AnalysisNode[]>([data.tree])
 
   let currentNode = $derived(drillPath[drillPath.length - 1])
@@ -37,6 +38,22 @@
   let tooltipY = $state(0)
   let showTooltip = $derived(tooltipNode !== null)
 
+  // ── Viz canvas dimensions (ResizeObserver) ──
+  let vizCanvasEl = $state<HTMLDivElement | null>(null)
+  let vizWidth = $state(800)
+  let vizHeight = $state(600)
+
+  onMount(() => {
+    if (!vizCanvasEl) return
+    const ro = new ResizeObserver(entries => {
+      const entry = entries[0]
+      vizWidth = entry.contentRect.width
+      vizHeight = entry.contentRect.height
+    })
+    ro.observe(vizCanvasEl)
+    return () => ro.disconnect()
+  })
+
   // ── Handlers ──
   function handleDrill(node: AnalysisNode) {
     if (node.children.length > 0) {
@@ -54,6 +71,10 @@
     tooltipNode = node
     tooltipX = x
     tooltipY = y
+  }
+
+  function handleNodeClick(node: AnalysisNode) {
+    handleDrill(node)
   }
 </script>
 
@@ -77,36 +98,30 @@
     />
 
     <main class="viz-area">
-      <div class="viz-canvas">
+      <div class="viz-canvas" bind:this={vizCanvasEl}>
         <!-- Dot grid background -->
         <div class="dot-grid"></div>
 
-        <!-- Placeholder for viz components -->
-        <div class="viz-placeholder">
-          <span class="viz-mode-label">{vizMode}</span>
-          <span class="viz-mode-desc">
-            {#if vizMode === 'Treemap'}Where is the money going?{/if}
-            {#if vizMode === 'Sunburst'}What does the nesting look like?{/if}
-            {#if vizMode === 'Pack'}What are the outliers?{/if}
-            {#if vizMode === 'Icicle'}What's at each depth level?{/if}
-          </span>
-          <span class="viz-node-count">{currentNode.children.length} children · {currentNode.tokens.total.avg} avg tokens</span>
-
-          <!-- Render mock node tiles so the shell isn't empty -->
-          <div class="mock-nodes">
-            {#each currentNode.children as child}
-              <button
-                class="mock-node"
-                style="--size: {Math.max(40, Math.sqrt(child.tokens.total.avg / currentNode.tokens.total.avg) * 200)}px; --thermal: var(--thermal-{Math.min(9, Math.round((child.cost.per_instance / currentNode.cost.per_instance) * 9))})"
-                onclick={() => handleDrill(child)}
-                onmouseenter={(e) => handleNodeHover(child, e.clientX, e.clientY)}
-                onmouseleave={() => handleNodeHover(null, 0, 0)}
-              >
-                <span class="mock-node-label">{child.name}</span>
-              </button>
-            {/each}
+        {#if vizMode === 'Treemap'}
+          <Treemap
+            root={currentNode}
+            width={vizWidth}
+            height={vizHeight}
+            {colorMode}
+            onhover={handleNodeHover}
+            onclick={handleNodeClick}
+          />
+        {:else}
+          <!-- Placeholder for other viz modes -->
+          <div class="viz-placeholder">
+            <span class="viz-mode-label">{vizMode}</span>
+            <span class="viz-mode-desc">
+              {#if vizMode === 'Sunburst'}What does the nesting look like?{/if}
+              {#if vizMode === 'Pack'}What are the outliers?{/if}
+              {#if vizMode === 'Icicle'}What's at each depth level?{/if}
+            </span>
           </div>
-        </div>
+        {/if}
       </div>
     </main>
 
@@ -180,9 +195,16 @@
     background-image: radial-gradient(circle, var(--text-ghost) 1px, transparent 1px);
     background-size: 32px 32px;
     pointer-events: none;
+    z-index: 0;
   }
 
-  /* Placeholder layout while real viz components are being built */
+  .viz-canvas :global(svg) {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+
+  /* Placeholder for viz modes not yet built */
   .viz-placeholder {
     position: absolute;
     inset: 0;
@@ -191,7 +213,7 @@
     align-items: center;
     justify-content: center;
     gap: var(--space-3);
-    padding: var(--space-8);
+    z-index: 1;
   }
 
   .viz-mode-label {
@@ -205,52 +227,5 @@
     font-family: var(--font-body);
     font-size: 15px;
     color: var(--text-tertiary);
-  }
-
-  .viz-node-count {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--text-ghost);
-  }
-
-  .mock-nodes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    justify-content: center;
-    margin-top: var(--space-6);
-    max-width: 800px;
-  }
-
-  .mock-node {
-    width: var(--size);
-    height: var(--size);
-    min-width: 40px;
-    min-height: 40px;
-    background: color-mix(in srgb, var(--thermal) 20%, var(--bg-surface));
-    border: 1px solid var(--thermal);
-    border-radius: var(--radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: transform var(--duration-instant),
-                box-shadow var(--duration-instant);
-    padding: var(--space-1);
-  }
-
-  .mock-node:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 16px color-mix(in srgb, var(--thermal) 30%, transparent);
-  }
-
-  .mock-node-label {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--text-secondary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    text-align: center;
   }
 </style>
