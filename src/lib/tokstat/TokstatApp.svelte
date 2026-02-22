@@ -469,9 +469,6 @@
                             opacity={nodeOpacity(shape.node)}
                           >{shape.label}</text>
                         {/if}
-                        {#if topInsightPaths.has(shape.path)}
-                          <circle cx={c.x} cy={Math.max(10, c.y - 12)} r="3" fill="var(--accent)" class="insight-dot" pointer-events="none" />
-                        {/if}
                       {/if}
                     {/each}
                   </g>
@@ -954,16 +951,6 @@
     font-weight: 500;
     letter-spacing: 0.01em;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
-  }
-
-  .insight-dot {
-    animation: pulse 1.6s infinite ease-in-out;
-    filter: drop-shadow(0 0 8px rgba(139, 127, 255, 0.8));
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 0.7; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.2); }
   }
 
   .breadcrumb-bar {
