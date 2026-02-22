@@ -1,0 +1,113 @@
+name: Bakeoff Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      codex_branch:
+        description: Branch/ref to build for /codex/
+        required: false
+        default: codex/tokstat
+      other_branch:
+        description: Branch/ref to build for /other/
+        required: false
+        default: claude/tokstat
+      codex_label:
+        description: Display label for /codex/ card
+        required: false
+        default: Codex version
+      other_label:
+        description: Display label for /other/ card
+        required: false
+        default: Claude version
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/bakeoff-pages.yml
+      - scripts/assemble-bakeoff-pages.sh
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      REPO_NAME: ${{ github.event.repository.name }}
+      CODEX_BRANCH: ${{ github.event.inputs.codex_branch || 'codex/tokstat' }}
+      OTHER_BRANCH: ${{ github.event.inputs.other_branch || 'claude/tokstat' }}
+      CODEX_LABEL: ${{ github.event.inputs.codex_label || 'Codex version' }}
+      OTHER_LABEL: ${{ github.event.inputs.other_label || 'Claude version' }}
+    steps:
+      - name: Checkout tooling (current branch)
+        uses: actions/checkout@v4
+        with:
+          path: tooling
+
+      - name: Checkout codex build target
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CODEX_BRANCH }}
+          path: codex-app
+
+      - name: Checkout other build target
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.OTHER_BRANCH }}
+          path: other-app
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            codex-app/package-lock.json
+            other-app/package-lock.json
+
+      - name: Install and build codex app
+        working-directory: codex-app
+        run: |
+          npm ci
+          npm run build -- --base "/${REPO_NAME}/codex/"
+
+      - name: Install and build other app
+        working-directory: other-app
+        run: |
+          npm ci
+          npm run build -- --base "/${REPO_NAME}/other/"
+
+      - name: Assemble Pages artifact
+        run: |
+          chmod +x tooling/scripts/assemble-bakeoff-pages.sh
+          tooling/scripts/assemble-bakeoff-pages.sh \
+            codex-app/dist \
+            other-app/dist \
+            _site \
+            "${CODEX_LABEL}" \
+            "${OTHER_LABEL}"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
