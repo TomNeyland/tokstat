@@ -19,6 +19,7 @@ export function analyzeRecords(records, options = {}) {
     tokenizer = null,
     costPer1k = null,
     sampleValues = 5,
+    ignorePatterns = [],
   } = options
 
   if (!Array.isArray(records) || records.length === 0) {
@@ -26,6 +27,7 @@ export function analyzeRecords(records, options = {}) {
   }
 
   const pricing = resolvePricing({ model, tokenizer, costPer1k })
+  const shouldIgnorePath = createIgnoreMatcher(ignorePatterns)
   const schemaRoot = createSchemaNode('root', 'root', 0)
   schemaRoot.present_count = records.length
   schemaRoot.seen_count = records.length
@@ -35,7 +37,7 @@ export function analyzeRecords(records, options = {}) {
     if (!isPlainObject(parsed)) {
       throw new Error(`Top-level JSON must be an object (${record.path})`)
     }
-    observeObjectShape(schemaRoot, parsed, sampleValues)
+    observeObjectShape(schemaRoot, parsed, sampleValues, shouldIgnorePath)
   }
 
   for (const node of walkSchema(schemaRoot)) {
@@ -49,7 +51,7 @@ export function analyzeRecords(records, options = {}) {
 
   for (const record of records) {
     const directMap = new Map()
-    measureRootObject(record.parsed, schemaRoot, directMap)
+    measureRootObject(record.parsed, schemaRoot, directMap, shouldIgnorePath)
     foldFileTotals(schemaRoot, directMap)
   }
 
@@ -145,16 +147,19 @@ function observeType(node, type) {
   node.observed_type_counts.set(type, (node.observed_type_counts.get(type) ?? 0) + 1)
 }
 
-function observeObjectShape(node, objectValue, sampleValues) {
+function observeObjectShape(node, objectValue, sampleValues, shouldIgnorePath) {
   observeType(node, 'object')
-  observeObjectFields(node, objectValue, sampleValues)
+  observeObjectFields(node, objectValue, sampleValues, shouldIgnorePath)
 }
 
-function observeObjectFields(node, objectValue, sampleValues) {
+function observeObjectFields(node, objectValue, sampleValues, shouldIgnorePath) {
   const keys = Object.keys(objectValue)
   for (const key of keys) {
     const childValue = objectValue[key]
     const childPath = `${node.path}.${key}`
+    if (shouldIgnorePath(childPath)) {
+      continue
+    }
     let child = node.children.get(key)
     if (!child) {
       child = createSchemaNode(key, childPath, node.depth + 1)
@@ -169,11 +174,11 @@ function observeObjectFields(node, objectValue, sampleValues) {
     if (childValue !== null) {
       child.present_count += 1
     }
-    observeShapeForValue(child, childValue, sampleValues)
+    observeShapeForValue(child, childValue, sampleValues, shouldIgnorePath)
   }
 }
 
-function observeShapeForValue(node, value, sampleValues) {
+function observeShapeForValue(node, value, sampleValues, shouldIgnorePath) {
   const type = getJsonType(value)
   if (value === null) {
     return
@@ -193,7 +198,7 @@ function observeShapeForValue(node, value, sampleValues) {
 
   if (type === 'object') {
     pushExample(node, summarizeExample(value), sampleValues)
-    observeObjectShape(node, value, sampleValues)
+    observeObjectShape(node, value, sampleValues, shouldIgnorePath)
     return
   }
 
@@ -203,7 +208,7 @@ function observeShapeForValue(node, value, sampleValues) {
     for (const item of value) {
       if (isPlainObject(item)) {
         node.array_object_item_count += 1
-        observeObjectFields(node, item, sampleValues)
+        observeObjectFields(node, item, sampleValues, shouldIgnorePath)
       }
       else if (Array.isArray(item)) {
         observeType(node, 'array')
@@ -230,30 +235,30 @@ function pushExample(node, value, limit) {
   }
 }
 
-function measureRootObject(objectValue, rootNode, directMap) {
+function measureRootObject(objectValue, rootNode, directMap, shouldIgnorePath) {
   ensureDirect(directMap, rootNode.path)
   addSchema(directMap, rootNode.path, '{')
-  const keys = Object.keys(objectValue)
+  const keys = Object.keys(objectValue).filter((key) => !shouldIgnorePath(`${rootNode.path}.${key}`))
   keys.forEach((key, index) => {
     if (index > 0) {
       addSchema(directMap, rootNode.path, ',')
     }
-    measureField(rootNode, key, objectValue[key], directMap)
+    measureField(rootNode, key, objectValue[key], directMap, shouldIgnorePath)
   })
   addSchema(directMap, rootNode.path, '}')
 }
 
-function measureField(parentNode, key, value, directMap) {
+function measureField(parentNode, key, value, directMap, shouldIgnorePath) {
   const child = parentNode.children.get(key)
   if (!child) {
     throw new Error(`Schema mismatch: missing child ${parentNode.path}.${key}`)
   }
   ensureDirect(directMap, child.path)
   addSchema(directMap, child.path, `${JSON.stringify(key)}:`)
-  measureNamedValue(child, value, directMap)
+  measureNamedValue(child, value, directMap, shouldIgnorePath)
 }
 
-function measureNamedValue(node, value, directMap) {
+function measureNamedValue(node, value, directMap, shouldIgnorePath) {
   if (value === null) {
     addNull(directMap, node.path, 'null')
     return
@@ -270,31 +275,31 @@ function measureNamedValue(node, value, directMap) {
   }
 
   if (Array.isArray(value)) {
-    measureArrayValue(node, value, directMap)
+    measureArrayValue(node, value, directMap, shouldIgnorePath)
     return
   }
 
   if (isPlainObject(value)) {
-    measureObjectValue(node, value, directMap)
+    measureObjectValue(node, value, directMap, shouldIgnorePath)
     return
   }
 
   addValue(directMap, node.path, JSON.stringify(String(value)))
 }
 
-function measureObjectValue(node, objectValue, directMap) {
+function measureObjectValue(node, objectValue, directMap, shouldIgnorePath) {
   addSchema(directMap, node.path, '{')
-  const keys = Object.keys(objectValue)
+  const keys = Object.keys(objectValue).filter((key) => !shouldIgnorePath(`${node.path}.${key}`))
   keys.forEach((key, index) => {
     if (index > 0) {
       addSchema(directMap, node.path, ',')
     }
-    measureField(node, key, objectValue[key], directMap)
+    measureField(node, key, objectValue[key], directMap, shouldIgnorePath)
   })
   addSchema(directMap, node.path, '}')
 }
 
-function measureArrayValue(node, arrayValue, directMap) {
+function measureArrayValue(node, arrayValue, directMap, shouldIgnorePath) {
   addSchema(directMap, node.path, '[')
   arrayValue.forEach((item, index) => {
     if (index > 0) {
@@ -308,13 +313,14 @@ function measureArrayValue(node, arrayValue, directMap) {
       // The item object has no standalone schema path. Attribute its structure to the array node,
       // but attribute named fields inside the item to array children (e.g. root.items[].field).
       addSchema(directMap, node.path, '{')
-      const keys = Object.keys(item)
-      keys.forEach((key, keyIndex) => {
-        if (keyIndex > 0) {
-          addSchema(directMap, node.path, ',')
-        }
-        measureField(node, key, item[key], directMap)
-      })
+        const keys = Object.keys(item)
+          .filter((key) => !shouldIgnorePath(`${node.path}.${key}`))
+        keys.forEach((key, keyIndex) => {
+          if (keyIndex > 0) {
+            addSchema(directMap, node.path, ',')
+          }
+        measureField(node, key, item[key], directMap, shouldIgnorePath)
+        })
       addSchema(directMap, node.path, '}')
       return
     }
@@ -702,6 +708,43 @@ function summarizeExample(value) {
 
 function stableStringify(value) {
   return JSON.stringify(value)
+}
+
+function createIgnoreMatcher(patterns) {
+  const normalized = (patterns ?? [])
+    .map((p) => String(p ?? '').trim())
+    .filter(Boolean)
+  if (normalized.length === 0) {
+    return () => false
+  }
+
+  const wildcardMatchers = normalized
+    .filter((p) => p.includes('*'))
+    .map((pattern) => ({ pattern, regex: wildcardToRegex(pattern) }))
+
+  const exactish = normalized.filter((p) => !p.includes('*'))
+
+  return (path) => {
+    const value = String(path)
+    for (const rule of exactish) {
+      if (value === rule || value.startsWith(`${rule}.`)) {
+        return true
+      }
+    }
+    for (const rule of wildcardMatchers) {
+      if (rule.regex.test(value)) {
+        return true
+      }
+    }
+    return false
+  }
+}
+
+function wildcardToRegex(pattern) {
+  const escaped = String(pattern)
+    .replace(/[|\\{}()[\]^$+?.]/g, '\\$&')
+    .replace(/\*/g, '.*')
+  return new RegExp(`^${escaped}$`)
 }
 
 const TOKEN_ESTIMATE_CACHE = new Map()

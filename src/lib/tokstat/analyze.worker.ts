@@ -8,6 +8,7 @@ type AnalyzeRequest = {
     glob?: string
     model?: string
     sampleValues?: number
+    ignorePatterns?: string[]
   }
 }
 
@@ -79,6 +80,7 @@ self.onmessage = async (event: MessageEvent<AnalyzeRequest>) => {
       glob: message.options?.glob ?? `${total} uploaded files`,
       model: message.options?.model ?? 'gpt-4o',
       sampleValues: message.options?.sampleValues ?? 5,
+      ignorePatterns: message.options?.ignorePatterns ?? [],
     })
 
     const done: DoneMessage = { type: 'done', requestId, report }

@@ -12,8 +12,13 @@
   let loading = $state(false)
   let loadingLabel = $state<string>('Load JSON')
   let activeUploadRequestId = 0
+  let analysisSource = $state<'demo' | 'upload' | 'embedded'>('demo')
+  let uploadedFiles = $state<File[]>([])
+  let ignorePatterns = $state<string[]>([])
+  let ignoreDraft = $state('')
+  let contextMenu = $state<{ x: number; y: number; path: string } | null>(null)
 
-  let viewMode = $state<ViewMode>('treemap')
+  let viewMode = $state<ViewMode>('sunburst')
   let colorMode = $state<ColorMode>('cost')
   let search = $state('')
   let hideBelowTokens = $state(0)
@@ -47,6 +52,7 @@
   const maxCost = $derived(Math.max(1, ...localNodes.map((n: any) => n.tokens?.total?.avg ?? 0)))
   const layoutShapes = $derived(currentRoot ? computeLayout(viewMode, currentRoot, viewport.width, viewport.height) : [])
   const breadcrumbChain = $derived(report ? findChain(report.tree, rootPath) : [])
+  const currentLocalDepth = $derived(currentRoot ? Math.max(0, maxDepth(currentRoot) - currentRoot.depth) : 0)
 
   const topInsightPaths = $derived(new Set((insights ?? []).slice(0, 10).map((i: any) => i.path)))
   const globalTopCostFields = $derived(
@@ -81,19 +87,26 @@
   })
 
   const hoveredNode = $derived(hover && report ? findNode(report.tree, hover.path) : null)
+  const shallowSunburstLeaders = $derived.by(() => {
+    if (viewMode !== 'sunburst' || !currentRoot || currentLocalDepth > 2) return []
+    const topDepth = currentRoot.depth + 1
+    return (layoutShapes as any[])
+      .filter((shape) => shape.kind === 'arc' && shape.depth === topDepth)
+      .sort((a, b) => (b.value ?? 0) - (a.value ?? 0))
+      .slice(0, 12)
+  })
+  const canReanalyzeWithIgnores = $derived(analysisSource !== 'embedded')
 
   onMount(() => {
     try {
       const embedded = (window as any).__TOKSTAT_DATA__
       if (embedded) {
+        analysisSource = 'embedded'
         setReport(embedded)
         return
       }
-      const demoReport = analyzeRecords(demoCorpus as any, {
-        glob: 'demo/*.json',
-        model: 'gpt-4o',
-        sampleValues: 5,
-      })
+      analysisSource = 'demo'
+      const demoReport = analyzeDemo(ignorePatterns)
       setReport(demoReport)
     }
     catch (e: any) {
@@ -119,10 +132,13 @@
     error = null
 
     try {
+      uploadedFiles = files
+      analysisSource = 'upload'
       const next = await analyzeFilesInWorker(files, {
         glob: files.length === 1 ? files[0].name : `${files.length} uploaded files`,
         model: report?.summary?.model ?? 'gpt-4o',
         sampleValues: 5,
+        ignorePatterns,
       })
       setReport(next)
     }
@@ -136,13 +152,28 @@
     }
   }
 
-  async function analyzeFilesInWorker(files: File[], options: { glob: string; model: string; sampleValues: number }) {
+  function analyzeDemo(currentIgnorePatterns: string[]) {
+    return analyzeRecords(demoCorpus as any, {
+      glob: 'demo/*.json',
+      model: 'gpt-4o',
+      sampleValues: 5,
+      ignorePatterns: currentIgnorePatterns,
+    })
+  }
+
+  async function analyzeFilesInWorker(files: File[], options: { glob: string; model: string; sampleValues: number; ignorePatterns?: string[] }) {
+    const plainFiles = Array.from(files)
+    const safeOptions = {
+      ...options,
+      ignorePatterns: Array.from(options.ignorePatterns ?? []),
+    }
+
     if (typeof Worker === 'undefined') {
-      loadingLabel = `Analyzing ${files.length} files…`
+      loadingLabel = `Analyzing ${plainFiles.length} files…`
       const records = await Promise.all(
-        files.map(async (file) => ({ path: file.name, parsed: JSON.parse(await file.text()) })),
+        plainFiles.map(async (file) => ({ path: file.name, parsed: JSON.parse(await file.text()) })),
       )
-      return analyzeRecords(records, options)
+      return analyzeRecords(records, safeOptions)
     }
 
     const requestId = ++activeUploadRequestId
@@ -181,10 +212,44 @@
       worker.postMessage({
         type: 'analyze',
         requestId,
-        files,
-        options,
+        files: plainFiles,
+        options: safeOptions,
       })
     })
+  }
+
+  async function rerunWithIgnorePatterns(nextPatterns: string[]) {
+    if (!canReanalyzeWithIgnores) {
+      error = 'Ignore rules require local source files (upload files in the browser to use this feature).'
+      return
+    }
+
+    loading = true
+    loadingLabel = 'Reanalyzing with ignore rules…'
+    error = null
+
+    try {
+      let nextReport: any
+      if (analysisSource === 'upload' && uploadedFiles.length > 0) {
+        nextReport = await analyzeFilesInWorker(uploadedFiles, {
+          glob: uploadedFiles.length === 1 ? uploadedFiles[0].name : `${uploadedFiles.length} uploaded files`,
+          model: report?.summary?.model ?? 'gpt-4o',
+          sampleValues: 5,
+          ignorePatterns: nextPatterns,
+        })
+      }
+      else {
+        nextReport = analyzeDemo(nextPatterns)
+      }
+      setReport(nextReport)
+    }
+    catch (e: any) {
+      error = e?.message ?? String(e)
+    }
+    finally {
+      loading = false
+      loadingLabel = 'Load JSON'
+    }
   }
 
   function selectNode(path: string) {
@@ -211,6 +276,41 @@
 
   function clearHover() {
     hover = null
+  }
+
+  function openContextMenu(event: MouseEvent, path: string) {
+    event.preventDefault()
+    hover = null
+    contextMenu = { x: event.clientX, y: event.clientY, path }
+  }
+
+  function closeContextMenu() {
+    contextMenu = null
+  }
+
+  function normalizeIgnoreRule(rule: string) {
+    return rule.trim()
+  }
+
+  async function addIgnoreRule(rule: string) {
+    const normalized = normalizeIgnoreRule(rule)
+    if (!normalized) return
+    if (ignorePatterns.includes(normalized)) {
+      ignoreDraft = ''
+      closeContextMenu()
+      return
+    }
+    const nextPatterns = [...ignorePatterns, normalized]
+    ignorePatterns = nextPatterns
+    ignoreDraft = ''
+    closeContextMenu()
+    await rerunWithIgnorePatterns(nextPatterns)
+  }
+
+  async function removeIgnoreRule(rule: string) {
+    const nextPatterns = ignorePatterns.filter((p) => p !== rule)
+    ignorePatterns = nextPatterns
+    await rerunWithIgnorePatterns(nextPatterns)
   }
 
   function matchesSearch(node: any) {
@@ -281,6 +381,15 @@
     return (node?.tokens?.total?.avg ?? 0) * (report?.summary?.file_count ?? 0)
   }
 
+  function arcPoint(shape: any, radius: number) {
+    const mid = (shape.startAngle + shape.endAngle) / 2
+    return {
+      x: shape.cx + Math.cos(mid - Math.PI / 2) * radius,
+      y: shape.cy + Math.sin(mid - Math.PI / 2) * radius,
+      mid,
+    }
+  }
+
   function handleShapeKeydown(event: KeyboardEvent, path: string, hasChildren: boolean) {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
@@ -302,6 +411,8 @@
     return []
   }
 </script>
+
+<svelte:window onclick={closeContextMenu} onkeydown={(e) => e.key === 'Escape' && closeContextMenu()} />
 
 {#if !report}
   <div class="empty-state">
@@ -382,6 +493,36 @@
           </label>
           <div class="small-meta">{report.summary.model} • {report.summary.tokenizer}</div>
           <div class="small-meta">{report.summary.glob ?? 'browser upload'}</div>
+        </section>
+
+        <section class="panel">
+          <h2>Ignore Fields</h2>
+          <div class="small-meta">Exclude non-LLM fields by path and reanalyze locally. Exact path rules ignore that node and its subtree.</div>
+          <div class="ignore-add">
+            <input
+              type="text"
+              bind:value={ignoreDraft}
+              placeholder="root.metadata.source_pdf_url or root.*.retrieved_at"
+              disabled={!canReanalyzeWithIgnores || loading}
+              onkeydown={(e) => e.key === 'Enter' && addIgnoreRule(ignoreDraft)}
+            />
+            <button class="ghost-btn" onclick={() => addIgnoreRule(ignoreDraft)} disabled={!canReanalyzeWithIgnores || loading}>Add</button>
+          </div>
+          {#if !canReanalyzeWithIgnores}
+            <div class="muted" style="margin-top: 8px;">Upload files in-browser to use ignore rules. Embedded reports don’t include raw source files for reanalysis.</div>
+          {/if}
+          <div class="ignore-rule-list">
+            {#if ignorePatterns.length === 0}
+              <div class="muted">No ignore rules yet. Right-click a node and choose Ignore this field.</div>
+            {:else}
+              {#each ignorePatterns as rule}
+                <div class="ignore-rule-item">
+                  <span class="ignore-rule-text">{rule}</span>
+                  <button class="ghost-btn mini" onclick={() => removeIgnoreRule(rule)} disabled={loading}>Remove</button>
+                </div>
+              {/each}
+            {/if}
+          </div>
         </section>
 
         <section class="panel">
@@ -492,9 +633,9 @@
                             d={describeArc(shape)}
                             fill={nodeColor(shape.node)}
                             fill-opacity={Math.max(0.18, nodeOpacity(shape.node) * 0.88)}
-                            stroke={nodeStroke(shape.node)}
-                            stroke-opacity={Math.max(0.2, nodeOpacity(shape.node))}
-                            stroke-width={selectedPath === shape.path ? 2 : 1}
+                            stroke={selectedPath === shape.path ? 'var(--accent)' : 'rgba(8, 8, 12, 0.82)'}
+                            stroke-opacity={Math.max(0.65, nodeOpacity(shape.node))}
+                            stroke-width={selectedPath === shape.path ? 2.25 : 1.1}
                             style={`filter: drop-shadow(0 0 ${topInsightPaths.has(shape.path) ? 10 : 6}px ${glowForColor(nodeColor(shape.node), topInsightPaths.has(shape.path) ? 0.4 : 0.22)});`}
                             class:selected={selectedPath === shape.path}
                             class:search-hit={matchesSearch(shape.node)}
@@ -504,6 +645,7 @@
                             onclick={() => selectNode(shape.path)}
                             ondblclick={() => shape.hasChildren && drillTo(shape.path)}
                             onkeydown={(e) => handleShapeKeydown(e, shape.path, shape.hasChildren)}
+                            oncontextmenu={(e) => openContextMenu(e, shape.path)}
                             onmousemove={(e) => handleHover(shape.path, e)}
                             onmouseleave={clearHover}
                           />
@@ -528,6 +670,7 @@
                             onclick={() => selectNode(shape.path)}
                             ondblclick={() => shape.hasChildren && drillTo(shape.path)}
                             onkeydown={(e) => handleShapeKeydown(e, shape.path, shape.hasChildren)}
+                            oncontextmenu={(e) => openContextMenu(e, shape.path)}
                             onmousemove={(e) => handleHover(shape.path, e)}
                             onmouseleave={clearHover}
                           />
@@ -554,6 +697,7 @@
                             onclick={() => selectNode(shape.path)}
                             ondblclick={() => shape.hasChildren && drillTo(shape.path)}
                             onkeydown={(e) => handleShapeKeydown(e, shape.path, shape.hasChildren)}
+                            oncontextmenu={(e) => openContextMenu(e, shape.path)}
                             onmousemove={(e) => handleHover(shape.path, e)}
                             onmouseleave={clearHover}
                           />
@@ -577,6 +721,39 @@
                         {/if}
                       {/if}
                     {/each}
+
+                    {#if viewMode === 'sunburst' && shallowSunburstLeaders.length > 0}
+                      {#each shallowSunburstLeaders as shape (shape.path + ':outer')}
+                        {@const p1 = arcPoint(shape, shape.outerR + 2)}
+                        {@const p2 = arcPoint(shape, shape.outerR + 18)}
+                        {@const rightSide = p2.x >= shape.cx}
+                        <line
+                          x1={p1.x}
+                          y1={p1.y}
+                          x2={p2.x}
+                          y2={p2.y}
+                          class="sunburst-leader"
+                          opacity={nodeOpacity(shape.node)}
+                        />
+                        <line
+                          x1={p2.x}
+                          y1={p2.y}
+                          x2={p2.x + (rightSide ? 12 : -12)}
+                          y2={p2.y}
+                          class="sunburst-leader"
+                          opacity={nodeOpacity(shape.node)}
+                        />
+                        <text
+                          x={p2.x + (rightSide ? 14 : -14)}
+                          y={p2.y}
+                          text-anchor={rightSide ? 'start' : 'end'}
+                          dominant-baseline="middle"
+                          class="sunburst-outer-label"
+                          opacity={nodeOpacity(shape.node)}
+                          pointer-events="none"
+                        >{shape.label}</text>
+                      {/each}
+                    {/if}
                   </g>
                 {/key}
               </svg>
@@ -724,6 +901,27 @@
 
     {#if error}
       <div class="error-banner">{error}</div>
+    {/if}
+
+    {#if contextMenu}
+      {@const menu = contextMenu}
+      <div
+        class="context-menu"
+        style={`left:${menu.x + 8}px; top:${menu.y + 8}px;`}
+        role="presentation"
+        tabindex="-1"
+        onclick={(e) => e.stopPropagation()}
+        onkeydown={(e) => e.stopPropagation()}
+      >
+        <div class="context-title">{shortPath(menu.path)}</div>
+        <div class="context-path">{menu.path}</div>
+        <button class="context-action" onclick={() => addIgnoreRule(menu.path)} disabled={!canReanalyzeWithIgnores || loading}>
+          Ignore This Field/Subtree
+        </button>
+        <button class="context-action secondary" onclick={() => addIgnoreRule(`${menu.path}.*`)} disabled={!canReanalyzeWithIgnores || loading}>
+          Ignore Children Only (`.*`)
+        </button>
+      </div>
     {/if}
   </div>
 {/if}
@@ -983,6 +1181,67 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .ignore-add {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+  }
+
+  .ignore-add input {
+    min-width: 0;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    color: var(--text-primary);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .ignore-add input:disabled {
+    opacity: 0.6;
+  }
+
+  .ignore-rule-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-top: var(--space-3);
+    max-height: 180px;
+    overflow: auto;
+  }
+
+  .ignore-rule-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: var(--space-2);
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+    border-radius: var(--radius-md);
+    padding: var(--space-2);
+  }
+
+  .ignore-rule-text {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ghost-btn.mini {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .ghost-btn:disabled {
+    opacity: 0.55;
+    cursor: default;
   }
 
   .insight-list {
@@ -1442,6 +1701,61 @@
     box-shadow: var(--shadow-lg);
     pointer-events: none;
     backdrop-filter: blur(12px);
+  }
+
+  .context-menu {
+    position: fixed;
+    z-index: 60;
+    width: min(360px, 92vw);
+    background: rgba(26, 26, 33, 0.98);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    padding: var(--space-3);
+    backdrop-filter: blur(12px);
+  }
+
+  .context-title {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .context-path {
+    margin-top: 2px;
+    margin-bottom: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-tertiary);
+    word-break: break-word;
+  }
+
+  .context-action {
+    width: 100%;
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border-default));
+    background: var(--accent-muted);
+    color: var(--accent-hover);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-3);
+    text-align: left;
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: var(--space-1);
+  }
+
+  .context-action.secondary {
+    border-color: var(--border-default);
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+  }
+
+  .context-action:disabled {
+    opacity: 0.55;
+    cursor: default;
   }
 
   .tooltip-head {
