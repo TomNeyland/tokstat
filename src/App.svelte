@@ -155,14 +155,18 @@
       const pricing = live.find(m => m.model_id === model)
       if (pricing) recomputeAllCosts(pricing)
     }).catch(() => {})
+  })
 
-    if (!vizCanvasEl) return
+  // Track viz canvas element — re-observe when it changes (e.g. after phase transitions)
+  $effect(() => {
+    const el = vizCanvasEl
+    if (!el) return
     const ro = new ResizeObserver(entries => {
       const entry = entries[0]
       vizWidth = entry.contentRect.width
       vizHeight = entry.contentRect.height
     })
-    ro.observe(vizCanvasEl)
+    ro.observe(el)
     return () => ro.disconnect()
   })
 
@@ -365,5 +369,7 @@
   .viz-canvas :global(svg) {
     position: absolute;
     inset: 0;
+    width: 100%;
+    height: 100%;
   }
 </style>

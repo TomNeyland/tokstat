@@ -71,8 +71,7 @@
 <svg
   class="icicle"
   viewBox="0 0 {width} {height}"
-  {width}
-  {height}
+  preserveAspectRatio="none"
 >
   {#each layoutNodes as node (node.data.path)}
     {@const x = node.x0}

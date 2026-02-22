@@ -82,8 +82,7 @@
 <svg
   class="treemap"
   viewBox="0 0 {width} {height}"
-  {width}
-  {height}
+  preserveAspectRatio="none"
 >
   <defs>
     {#each layoutNodes as node (node.data.path)}

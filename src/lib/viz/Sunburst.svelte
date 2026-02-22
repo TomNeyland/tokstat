@@ -132,8 +132,7 @@
 <svg
   class="sunburst"
   viewBox="0 0 {width} {height}"
-  {width}
-  {height}
+  preserveAspectRatio="none"
 >
   <g transform="translate({cx},{cy})">
     <!-- Center text -->
