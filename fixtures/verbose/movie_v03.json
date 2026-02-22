@@ -1,0 +1,105 @@
+{
+  "imdb_id": "tt1375666",
+  "title": "Inception",
+  "year": 2010,
+  "genre": "sci-fi",
+  "production": {
+    "director": "Christopher Nolan",
+    "budget_usd": 160000000,
+    "studios": ["Warner Bros. Pictures", "Legendary Entertainment", "Syncopy"],
+    "filming_locations": [
+      {
+        "country": "United Kingdom",
+        "region": "London",
+        "scenes_filmed": ["hotel corridor", "warehouse"]
+      },
+      {
+        "country": "France",
+        "region": "Paris",
+        "scenes_filmed": ["cafe scene", "mirror city"]
+      },
+      {
+        "country": "Japan",
+        "region": "Tokyo",
+        "scenes_filmed": ["bullet train", "Saito meeting"]
+      },
+      {
+        "country": "Morocco",
+        "region": "Tangier",
+        "scenes_filmed": ["Mombasa chase"]
+      }
+    ],
+    "post_production": {
+      "vfx_studio": "Double Negative",
+      "vfx_shots": 500,
+      "runtime_minutes": 148
+    }
+  },
+  "cast": [
+    {
+      "actor": "Leonardo DiCaprio",
+      "role": "Dom Cobb",
+      "billing_order": 1,
+      "awards": [
+        {
+          "category": "Best Actor",
+          "ceremony": "Golden Globes",
+          "won": false
+        }
+      ]
+    },
+    {
+      "actor": "Joseph Gordon-Levitt",
+      "role": "Arthur",
+      "billing_order": 2,
+      "awards": []
+    },
+    {
+      "actor": "Ellen Page",
+      "role": "Ariadne",
+      "billing_order": 3,
+      "awards": []
+    },
+    {
+      "actor": "Tom Hardy",
+      "role": "Eames",
+      "billing_order": 4,
+      "awards": []
+    },
+    {
+      "actor": "Ken Watanabe",
+      "role": "Saito",
+      "billing_order": 5,
+      "awards": []
+    }
+  ],
+  "box_office": {
+    "opening_weekend": 62785337,
+    "domestic_gross": 292576195,
+    "international_gross": 535700000
+  },
+  "reviews": [
+    {
+      "source": "Rotten Tomatoes",
+      "score": 87,
+      "summary": "Smart, innovative, and thrilling"
+    },
+    {
+      "source": "Metacritic",
+      "score": 74,
+      "summary": null
+    },
+    {
+      "source": "Roger Ebert",
+      "score": 100,
+      "summary": "A breathtaking juggling act of imagination and technical skill"
+    }
+  ],
+  "rating": "PG-13",
+  "distributor": "Warner Bros. Pictures",
+  "soundtrack": {
+    "composer": "Hans Zimmer",
+    "tracks": 12,
+    "grammy_nominated": true
+  }
+}

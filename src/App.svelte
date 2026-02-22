@@ -67,19 +67,21 @@
     pipeline.analyze(files, model)
   }
 
-  // ── Cost recomputation on model change ──
-  $effect(() => {
-    const pricing = availableModels.find(m => m.model_id === model)
-    if (!pricing) return
-
-    // Recompute costs on all trees (cheap tree walk, no re-tokenization)
+  // ── Cost recomputation (imperative, called from handlers) ──
+  function recomputeAllCosts(pricing: ModelPricing) {
     calculateCosts(cohortedData.combined.tree, pricing, cohortedData.combined.summary.file_count)
     for (const output of Object.values(cohortedData.per_cohort)) {
       calculateCosts(output.tree, pricing, output.summary.file_count)
     }
-    // Trigger reactivity
     cohortedData = { ...cohortedData }
-  })
+  }
+
+  function handleModelChange(newModel: string) {
+    model = newModel
+    const pricing = availableModels.find(m => m.model_id === newModel)
+    if (!pricing) return
+    recomputeAllCosts(pricing)
+  }
 
   // ── Ignore system ──
   let ignorePatterns = $state<string[]>([])
@@ -150,9 +152,9 @@
     // Fetch live pricing (replace static models when available)
     fetchLivePricing().then(live => {
       availableModels = live
-    }).catch(() => {
-      // Static models already loaded — nothing to do
-    })
+      const pricing = live.find(m => m.model_id === model)
+      if (pricing) recomputeAllCosts(pricing)
+    }).catch(() => {})
 
     if (!vizCanvasEl) return
     const ro = new ResizeObserver(entries => {
@@ -230,7 +232,7 @@
       {activeCohort}
       {availableModels}
       oncolorchange={(m) => colorMode = m as typeof colorMode}
-      onmodelchange={(m) => model = m}
+      onmodelchange={handleModelChange}
       oncohortchange={(id) => activeCohort = id}
       ontogglecollapse={() => sidebarCollapsed = !sidebarCollapsed}
       ontogglediet={() => showDiet = !showDiet}

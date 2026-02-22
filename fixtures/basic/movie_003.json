@@ -1,0 +1,46 @@
+{
+  "imdb_id": "tt0468569",
+  "title": "The Dark Knight",
+  "year": 2008,
+  "genre": "action",
+  "production": {
+    "director": "Christopher Nolan",
+    "budget_usd": 185000000
+  },
+  "cast": [
+    {
+      "actor": "Christian Bale",
+      "role": "Bruce Wayne",
+      "billing_order": 1,
+      "awards": []
+    },
+    {
+      "actor": "Heath Ledger",
+      "role": "The Joker",
+      "billing_order": 2,
+      "awards": [
+        {
+          "category": "Best Supporting Actor",
+          "ceremony": "Academy Awards",
+          "won": true
+        },
+        {
+          "category": "Best Supporting Actor",
+          "ceremony": "Golden Globes",
+          "won": true
+        },
+        {
+          "category": "Best Supporting Actor",
+          "ceremony": "Screen Actors Guild",
+          "won": true
+        }
+      ]
+    }
+  ],
+  "box_office": {
+    "opening_weekend": 158411483,
+    "domestic_gross": 533316061,
+    "international_gross": 469700000
+  },
+  "rating": "PG-13"
+}

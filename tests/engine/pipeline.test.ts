@@ -50,15 +50,15 @@ describe('pipeline integration', () => {
     expect(output.summary.null_waste_ratio).toBeGreaterThan(0)
 
     // Find a field that we know is often null in sparse fixtures
-    // funding_source is null in 3/5 sparse files
-    const fundingSource = findNode(output.tree, 'root.funding_source')
-    expect(fundingSource).not.toBeNull()
-    expect(fundingSource!.fill_rate).toBeLessThan(1)
+    // soundtrack is null in 5/5 sparse files
+    const soundtrack = findNode(output.tree, 'root.soundtrack')
+    expect(soundtrack).not.toBeNull()
+    expect(soundtrack!.fill_rate).toBeLessThan(1)
 
-    // limitations is null in 4/5 sparse files
-    const limitations = findNode(output.tree, 'root.limitations')
-    expect(limitations).not.toBeNull()
-    expect(limitations!.fill_rate).toBeLessThan(0.5)
+    // distributor is null in 4/5 sparse files
+    const distributor = findNode(output.tree, 'root.distributor')
+    expect(distributor).not.toBeNull()
+    expect(distributor!.fill_rate).toBeLessThan(0.5)
   })
 
   it('detects null_tax insights on sparse fixtures', () => {

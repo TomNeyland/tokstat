@@ -1,0 +1,42 @@
+{
+  "imdb_id": "tt0071562",
+  "title": "The Godfather Part II",
+  "year": 1974,
+  "genre": "crime",
+  "production": {
+    "director": "Francis Ford Coppola",
+    "budget_usd": 13000000
+  },
+  "cast": [
+    {
+      "actor": "Al Pacino",
+      "role": "Michael Corleone",
+      "billing_order": 1,
+      "awards": [
+        {
+          "category": "Best Actor",
+          "ceremony": "Academy Awards",
+          "won": false
+        }
+      ]
+    },
+    {
+      "actor": "Robert De Niro",
+      "role": "Vito Corleone",
+      "billing_order": 2,
+      "awards": [
+        {
+          "category": "Best Supporting Actor",
+          "ceremony": "Academy Awards",
+          "won": true
+        }
+      ]
+    }
+  ],
+  "box_office": {
+    "opening_weekend": 201860,
+    "domestic_gross": 47834595,
+    "international_gross": 46000000
+  },
+  "rating": "R"
+}

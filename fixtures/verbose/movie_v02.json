@@ -1,0 +1,89 @@
+{
+  "imdb_id": "tt0167260",
+  "title": "The Lord of the Rings: The Return of the King",
+  "year": 2003,
+  "genre": "fantasy",
+  "production": {
+    "director": "Peter Jackson",
+    "budget_usd": 94000000,
+    "studios": ["New Line Cinema", "WingNut Films"],
+    "filming_locations": [
+      {
+        "country": "New Zealand",
+        "region": "Wellington",
+        "scenes_filmed": ["Minas Tirith", "Osgiliath"]
+      },
+      {
+        "country": "New Zealand",
+        "region": "Canterbury",
+        "scenes_filmed": ["Pelennor Fields", "Edoras"]
+      },
+      {
+        "country": "New Zealand",
+        "region": "Tongariro",
+        "scenes_filmed": ["Mount Doom", "Mordor"]
+      }
+    ],
+    "post_production": {
+      "vfx_studio": "Weta Digital",
+      "vfx_shots": 1488,
+      "runtime_minutes": 201
+    }
+  },
+  "cast": [
+    {
+      "actor": "Elijah Wood",
+      "role": "Frodo Baggins",
+      "billing_order": 1,
+      "awards": []
+    },
+    {
+      "actor": "Viggo Mortensen",
+      "role": "Aragorn",
+      "billing_order": 2,
+      "awards": []
+    },
+    {
+      "actor": "Ian McKellen",
+      "role": "Gandalf",
+      "billing_order": 3,
+      "awards": []
+    },
+    {
+      "actor": "Sean Astin",
+      "role": "Samwise Gamgee",
+      "billing_order": 4,
+      "awards": [
+        {
+          "category": "Best Supporting Actor",
+          "ceremony": "Saturn Awards",
+          "won": true
+        }
+      ]
+    }
+  ],
+  "box_office": {
+    "opening_weekend": 72629713,
+    "domestic_gross": 377027325,
+    "international_gross": 752200000
+  },
+  "reviews": [
+    {
+      "source": "Rotten Tomatoes",
+      "score": 93,
+      "summary": "A triumphant conclusion to one of the greatest film trilogies"
+    },
+    {
+      "source": "Metacritic",
+      "score": 94,
+      "summary": "A masterwork of epic cinema"
+    }
+  ],
+  "rating": "PG-13",
+  "distributor": "New Line Cinema",
+  "soundtrack": {
+    "composer": "Howard Shore",
+    "tracks": 20,
+    "grammy_nominated": true
+  }
+}

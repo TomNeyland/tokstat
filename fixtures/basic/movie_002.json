@@ -1,0 +1,54 @@
+{
+  "imdb_id": "tt0068646",
+  "title": "The Godfather",
+  "year": 1972,
+  "genre": "crime",
+  "production": {
+    "director": "Francis Ford Coppola",
+    "budget_usd": 6000000
+  },
+  "cast": [
+    {
+      "actor": "Marlon Brando",
+      "role": "Don Vito Corleone",
+      "billing_order": 1,
+      "awards": [
+        {
+          "category": "Best Actor",
+          "ceremony": "Academy Awards",
+          "won": true
+        }
+      ]
+    },
+    {
+      "actor": "Al Pacino",
+      "role": "Michael Corleone",
+      "billing_order": 2,
+      "awards": [
+        {
+          "category": "Best Supporting Actor",
+          "ceremony": "Academy Awards",
+          "won": false
+        }
+      ]
+    },
+    {
+      "actor": "James Caan",
+      "role": "Sonny Corleone",
+      "billing_order": 3,
+      "awards": [
+        {
+          "category": "Best Supporting Actor",
+          "ceremony": "Academy Awards",
+          "won": false
+        }
+      ]
+    }
+  ],
+  "box_office": {
+    "opening_weekend": 302393,
+    "domestic_gross": 134966411,
+    "international_gross": 110000000
+  },
+  "rating": "R"
+}

@@ -1,0 +1,47 @@
+{
+  "imdb_id": "tt0111161",
+  "title": "The Shawshank Redemption",
+  "year": 1994,
+  "genre": "drama",
+  "production": {
+    "director": "Frank Darabont",
+    "budget_usd": 25000000
+  },
+  "cast": [
+    {
+      "actor": "Tim Robbins",
+      "role": "Andy Dufresne",
+      "billing_order": 1,
+      "awards": [
+        {
+          "category": "Best Actor",
+          "ceremony": "Saturn Awards",
+          "won": true
+        }
+      ]
+    },
+    {
+      "actor": "Morgan Freeman",
+      "role": "Ellis Boyd Redding",
+      "billing_order": 2,
+      "awards": [
+        {
+          "category": "Best Actor",
+          "ceremony": "Academy Awards",
+          "won": false
+        },
+        {
+          "category": "Best Actor",
+          "ceremony": "Screen Actors Guild",
+          "won": false
+        }
+      ]
+    }
+  ],
+  "box_office": {
+    "opening_weekend": 727000,
+    "domestic_gross": 28341469,
+    "international_gross": 30000000
+  },
+  "rating": "R"
+}

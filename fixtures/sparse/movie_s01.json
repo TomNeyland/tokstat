@@ -1,0 +1,23 @@
+{
+  "imdb_id": "tt9999901",
+  "title": "Untitled Indie Project",
+  "year": 2024,
+  "genre": "drama",
+  "production": {
+    "director": "Unknown Director",
+    "budget_usd": null
+  },
+  "cast": [
+    {
+      "actor": "Jane Doe",
+      "role": "Lead",
+      "billing_order": 1,
+      "awards": []
+    }
+  ],
+  "box_office": null,
+  "rating": null,
+  "reviews": null,
+  "distributor": null,
+  "soundtrack": null
+}

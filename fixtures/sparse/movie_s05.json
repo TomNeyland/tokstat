@@ -1,0 +1,22 @@
+{
+  "imdb_id": "tt9999905",
+  "title": "Documentary Rough Cut",
+  "year": 2024,
+  "genre": "documentary",
+  "production": {
+    "director": "Doc Filmmaker",
+    "budget_usd": 50000
+  },
+  "cast": [],
+  "box_office": null,
+  "rating": null,
+  "reviews": [
+    {
+      "source": "Sundance",
+      "score": 8.1,
+      "summary": "A compelling look at modern urban farming"
+    }
+  ],
+  "distributor": null,
+  "soundtrack": null
+}

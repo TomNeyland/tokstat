@@ -1,0 +1,36 @@
+{
+  "imdb_id": "tt0137523",
+  "title": "Fight Club",
+  "year": 1999,
+  "genre": "drama",
+  "production": {
+    "director": "David Fincher",
+    "budget_usd": 63000000
+  },
+  "cast": [
+    {
+      "actor": "Brad Pitt",
+      "role": "Tyler Durden",
+      "billing_order": 1,
+      "awards": []
+    },
+    {
+      "actor": "Edward Norton",
+      "role": "The Narrator",
+      "billing_order": 2,
+      "awards": []
+    },
+    {
+      "actor": "Helena Bonham Carter",
+      "role": "Marla Singer",
+      "billing_order": 3,
+      "awards": []
+    }
+  ],
+  "box_office": {
+    "opening_weekend": 11035485,
+    "domestic_gross": 37030102,
+    "international_gross": 63000000
+  },
+  "rating": "R"
+}

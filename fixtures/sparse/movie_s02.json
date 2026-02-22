@@ -1,0 +1,29 @@
+{
+  "imdb_id": "tt9999902",
+  "title": "Festival Short Film",
+  "year": 2023,
+  "genre": "short",
+  "production": {
+    "director": "Film Student",
+    "budget_usd": null
+  },
+  "cast": [
+    {
+      "actor": "Unknown Actor",
+      "role": "Protagonist",
+      "billing_order": 1,
+      "awards": []
+    }
+  ],
+  "box_office": null,
+  "rating": null,
+  "reviews": [
+    {
+      "source": "Festival Jury",
+      "score": 7.2,
+      "summary": null
+    }
+  ],
+  "distributor": null,
+  "soundtrack": null
+}

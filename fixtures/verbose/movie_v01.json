@@ -1,0 +1,94 @@
+{
+  "imdb_id": "tt0120737",
+  "title": "The Lord of the Rings: The Fellowship of the Ring",
+  "year": 2001,
+  "genre": "fantasy",
+  "production": {
+    "director": "Peter Jackson",
+    "budget_usd": 93000000,
+    "studios": ["New Line Cinema", "WingNut Films"],
+    "filming_locations": [
+      {
+        "country": "New Zealand",
+        "region": "Wellington",
+        "scenes_filmed": ["Rivendell", "Isengard", "Moria"]
+      },
+      {
+        "country": "New Zealand",
+        "region": "Queenstown",
+        "scenes_filmed": ["Lothlorien", "Amon Hen"]
+      }
+    ],
+    "post_production": {
+      "vfx_studio": "Weta Digital",
+      "vfx_shots": 580,
+      "runtime_minutes": 178
+    }
+  },
+  "cast": [
+    {
+      "actor": "Elijah Wood",
+      "role": "Frodo Baggins",
+      "billing_order": 1,
+      "awards": [
+        {
+          "category": "Best Ensemble Cast",
+          "ceremony": "Screen Actors Guild",
+          "won": false
+        }
+      ]
+    },
+    {
+      "actor": "Ian McKellen",
+      "role": "Gandalf",
+      "billing_order": 2,
+      "awards": [
+        {
+          "category": "Best Supporting Actor",
+          "ceremony": "Academy Awards",
+          "won": false
+        },
+        {
+          "category": "Best Supporting Actor",
+          "ceremony": "Screen Actors Guild",
+          "won": false
+        }
+      ]
+    },
+    {
+      "actor": "Viggo Mortensen",
+      "role": "Aragorn",
+      "billing_order": 3,
+      "awards": []
+    }
+  ],
+  "box_office": {
+    "opening_weekend": 47211490,
+    "domestic_gross": 315544750,
+    "international_gross": 556592194
+  },
+  "reviews": [
+    {
+      "source": "Rotten Tomatoes",
+      "score": 91,
+      "summary": "A visually breathtaking and emotionally powerful adaptation"
+    },
+    {
+      "source": "Metacritic",
+      "score": 92,
+      "summary": "An epic achievement in filmmaking"
+    },
+    {
+      "source": "Roger Ebert",
+      "score": 100,
+      "summary": null
+    }
+  ],
+  "rating": "PG-13",
+  "distributor": "New Line Cinema",
+  "soundtrack": {
+    "composer": "Howard Shore",
+    "tracks": 18,
+    "grammy_nominated": true
+  }
+}
