@@ -93,7 +93,7 @@ cat >"$OUT_DIR/index.html" <<'HTMLEOF'
 
     /* ── Hero ── */
     .hero {
-      padding: 12vh 0 8vh;
+      padding: 5vh 0 4vh;
       text-align: center;
       position: relative;
     }
@@ -119,7 +119,7 @@ cat >"$OUT_DIR/index.html" <<'HTMLEOF'
       background: var(--accent-muted);
       border-radius: 9999px;
       padding: 6px 16px;
-      margin-bottom: 32px;
+      margin-bottom: 20px;
       letter-spacing: 0.04em;
     }
 
@@ -129,7 +129,7 @@ cat >"$OUT_DIR/index.html" <<'HTMLEOF'
       font-size: clamp(48px, 8vw, 80px);
       line-height: 1.0;
       letter-spacing: -0.03em;
-      margin-bottom: 24px;
+      margin-bottom: 16px;
     }
 
     h1 span {
@@ -144,7 +144,7 @@ cat >"$OUT_DIR/index.html" <<'HTMLEOF'
       line-height: 1.6;
       color: var(--text-secondary);
       max-width: 560px;
-      margin: 0 auto 40px;
+      margin: 0 auto 24px;
     }
 
     .hero-cli {
@@ -156,41 +156,27 @@ cat >"$OUT_DIR/index.html" <<'HTMLEOF'
       border: 1px solid var(--border-default);
       border-radius: 8px;
       padding: 12px 24px;
-      margin-bottom: 48px;
+      margin-bottom: 32px;
     }
 
     .hero-cli .prompt { color: var(--accent); }
     .hero-cli .path { color: var(--thermal-3); }
 
-    /* ── Screenshot placeholder ── */
+    /* ── Screenshot ── */
     .screenshot-slot {
-      max-width: 840px;
-      margin: 0 auto 80px;
-      aspect-ratio: 16/9;
+      max-width: 960px;
+      margin: 0 auto 48px;
       border-radius: 12px;
-      border: 1px solid var(--border-subtle);
-      background:
-        radial-gradient(circle at 30% 40%, rgba(46,94,170,0.08) 0%, transparent 50%),
-        radial-gradient(circle at 70% 60%, rgba(212,43,123,0.06) 0%, transparent 50%),
-        var(--bg-surface);
-      display: flex;
-      align-items: center;
-      justify-content: center;
       overflow: hidden;
       position: relative;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 0 1px var(--border-subtle);
     }
 
     .screenshot-slot img {
+      display: block;
       width: 100%;
-      height: 100%;
-      object-fit: cover;
+      height: auto;
       border-radius: 12px;
-    }
-
-    .screenshot-placeholder {
-      color: var(--text-ghost);
-      font-size: 14px;
-      font-family: 'JetBrains Mono', monospace;
     }
 
     /* ── Features grid ── */
@@ -461,12 +447,12 @@ cat >"$OUT_DIR/index.html" <<'HTMLEOF'
     }
 
     .build-thumb {
+      display: block;
       width: 100%;
+      height: auto;
       border-radius: 8px;
       border: 1px solid var(--border-subtle);
       margin-bottom: 16px;
-      aspect-ratio: 16/9;
-      object-fit: cover;
     }
 
     /* ── Footer ── */
