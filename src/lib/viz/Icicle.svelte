@@ -1,7 +1,7 @@
 <script lang="ts">
   import { hierarchy, partition } from 'd3-hierarchy'
   import type { HierarchyRectangularNode } from 'd3-hierarchy'
-  import type { AnalysisNode } from '../../engine/types'
+  import type { AnalysisNode, Insight } from '../../engine/types'
   import { thermalScale, fillRateScale, overheadScale, depthScale, glowParams, rankNormalize } from './colorScale'
 
   type ColorMode = 'Cost' | 'Fill rate' | 'Overhead' | 'Depth'
@@ -11,11 +11,16 @@
     width: number
     height: number
     colorMode: ColorMode
+    insights?: Insight[]
     onhover: (node: AnalysisNode | null, x: number, y: number) => void
     onclick: (node: AnalysisNode) => void
   }
 
-  let { root, width, height, colorMode, onhover, onclick }: Props = $props()
+  let { root, width, height, colorMode, insights = [], onhover, onclick }: Props = $props()
+
+  let insightPaths = $derived(new Set(
+    insights.sort((a, b) => b.savings_tokens - a.savings_tokens).slice(0, 10).map(i => i.path)
+  ))
 
   // ── D3 partition layout (linear) ──
   let layoutNodes = $derived.by(() => {

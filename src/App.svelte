@@ -95,6 +95,7 @@
       oncolorchange={(m) => colorMode = m as typeof colorMode}
       onmodelchange={(m) => model = m}
       ontogglecollapse={() => sidebarCollapsed = !sidebarCollapsed}
+      ontogglediet={() => showDiet = !showDiet}
     />
 
     <main class="viz-area">
@@ -108,6 +109,7 @@
           {colorMode}
           width={vizWidth}
           height={vizHeight}
+          insights={data.insights}
           onhover={handleNodeHover}
           onclick={handleNodeClick}
         />

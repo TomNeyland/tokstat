@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AnalysisNode } from '../../engine/types'
+  import type { AnalysisNode, Insight } from '../../engine/types'
   import Treemap from './Treemap.svelte'
   import Sunburst from './Sunburst.svelte'
   import CirclePack from './CirclePack.svelte'
@@ -14,11 +14,12 @@
     colorMode: ColorMode
     width: number
     height: number
+    insights?: Insight[]
     onhover: (node: AnalysisNode | null, x: number, y: number) => void
     onclick: (node: AnalysisNode) => void
   }
 
-  let { root, vizMode, colorMode, width, height, onhover, onclick }: Props = $props()
+  let { root, vizMode, colorMode, width, height, insights = [], onhover, onclick }: Props = $props()
 
   // ── Transition state ──
   let prevMode = $state<VizMode>(vizMode)
@@ -47,26 +48,26 @@
   {#if showPrev}
     <div class="viz-layer exiting">
       {#if prevMode === 'Treemap'}
-        <Treemap {root} {width} {height} {colorMode} {onhover} {onclick} />
+        <Treemap {root} {width} {height} {colorMode} {insights} {onhover} {onclick} />
       {:else if prevMode === 'Sunburst'}
-        <Sunburst {root} {width} {height} {colorMode} {onhover} {onclick} />
+        <Sunburst {root} {width} {height} {colorMode} {insights} {onhover} {onclick} />
       {:else if prevMode === 'Pack'}
-        <CirclePack {root} {width} {height} {colorMode} {onhover} {onclick} />
+        <CirclePack {root} {width} {height} {colorMode} {insights} {onhover} {onclick} />
       {:else if prevMode === 'Icicle'}
-        <Icicle {root} {width} {height} {colorMode} {onhover} {onclick} />
+        <Icicle {root} {width} {height} {colorMode} {insights} {onhover} {onclick} />
       {/if}
     </div>
   {/if}
 
   <div class="viz-layer" class:entering={transitioning}>
       {#if vizMode === 'Treemap'}
-        <Treemap {root} {width} {height} {colorMode} {onhover} {onclick} />
+        <Treemap {root} {width} {height} {colorMode} {insights} {onhover} {onclick} />
       {:else if vizMode === 'Sunburst'}
-        <Sunburst {root} {width} {height} {colorMode} {onhover} {onclick} />
+        <Sunburst {root} {width} {height} {colorMode} {insights} {onhover} {onclick} />
       {:else if vizMode === 'Pack'}
-        <CirclePack {root} {width} {height} {colorMode} {onhover} {onclick} />
+        <CirclePack {root} {width} {height} {colorMode} {insights} {onhover} {onclick} />
       {:else if vizMode === 'Icicle'}
-        <Icicle {root} {width} {height} {colorMode} {onhover} {onclick} />
+        <Icicle {root} {width} {height} {colorMode} {insights} {onhover} {onclick} />
       {/if}
     </div>
 </div>

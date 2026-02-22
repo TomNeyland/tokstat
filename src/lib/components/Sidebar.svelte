@@ -13,6 +13,7 @@
     oncolorchange: (mode: string) => void
     onmodelchange: (model: string) => void
     ontogglecollapse: () => void
+    ontogglediet: () => void
   }
 
   let {
@@ -24,6 +25,7 @@
     oncolorchange,
     onmodelchange,
     ontogglecollapse,
+    ontogglediet,
   }: Props = $props()
 
   const vizOptions: VizMode[] = ['Treemap', 'Sunburst', 'Pack', 'Icicle']
@@ -80,6 +82,15 @@
           <option value={m}>{m}</option>
         {/each}
       </select>
+    </div>
+
+    <div class="section">
+      <button class="diet-btn" onclick={ontogglediet}>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16">
+          <path d="M4 10h12M4 6h12M4 14h8" />
+        </svg>
+        Schema Diet
+      </button>
     </div>
   {/if}
 </aside>
@@ -195,5 +206,27 @@
   .model-select option {
     background: var(--bg-elevated);
     color: var(--text-primary);
+  }
+
+  .diet-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    background: none;
+    border: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: color var(--duration-instant), border-color var(--duration-instant);
+  }
+
+  .diet-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--border-default);
   }
 </style>
