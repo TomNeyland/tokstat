@@ -1,5 +1,6 @@
 import { defineConfig, type Plugin } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
+import { viteSingleFile } from 'vite-plugin-singlefile'
 import { readFileSync } from 'node:fs'
 
 /**
@@ -25,6 +26,7 @@ export default defineConfig({
   plugins: [
     svelte(),
     tokstatDataPlugin(),
+    viteSingleFile(),
   ],
   build: {
     assetsInlineLimit: Infinity,
