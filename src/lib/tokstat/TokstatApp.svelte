@@ -10,6 +10,8 @@
   let report = $state<any | null>(null)
   let error = $state<string | null>(null)
   let loading = $state(false)
+  let loadingLabel = $state<string>('Load JSON')
+  let activeUploadRequestId = 0
 
   let viewMode = $state<ViewMode>('treemap')
   let colorMode = $state<ColorMode>('cost')
@@ -113,16 +115,11 @@
     if (files.length === 0) return
 
     loading = true
+    loadingLabel = `Preparing ${files.length} files…`
     error = null
 
     try {
-      const records = await Promise.all(
-        files.map(async (file) => {
-          const text = await file.text()
-          return { path: file.name, parsed: JSON.parse(text) }
-        }),
-      )
-      const next = analyzeRecords(records, {
+      const next = await analyzeFilesInWorker(files, {
         glob: files.length === 1 ? files[0].name : `${files.length} uploaded files`,
         model: report?.summary?.model ?? 'gpt-4o',
         sampleValues: 5,
@@ -134,8 +131,60 @@
     }
     finally {
       loading = false
+      loadingLabel = 'Load JSON'
       input.value = ''
     }
+  }
+
+  async function analyzeFilesInWorker(files: File[], options: { glob: string; model: string; sampleValues: number }) {
+    if (typeof Worker === 'undefined') {
+      loadingLabel = `Analyzing ${files.length} files…`
+      const records = await Promise.all(
+        files.map(async (file) => ({ path: file.name, parsed: JSON.parse(await file.text()) })),
+      )
+      return analyzeRecords(records, options)
+    }
+
+    const requestId = ++activeUploadRequestId
+    const worker = new Worker(new URL('./analyze.worker.ts', import.meta.url), { type: 'module' })
+
+    return await new Promise<any>((resolve, reject) => {
+      worker.onmessage = (messageEvent: MessageEvent<any>) => {
+        const msg = messageEvent.data
+        if (!msg || msg.requestId !== requestId) return
+
+        if (msg.type === 'progress') {
+          loadingLabel = msg.label ?? 'Analyzing…'
+          return
+        }
+
+        worker.terminate()
+
+        if (msg.type === 'done') {
+          resolve(msg.report)
+          return
+        }
+
+        if (msg.type === 'error') {
+          reject(new Error(msg.message ?? 'Worker analysis failed'))
+          return
+        }
+
+        reject(new Error('Unexpected worker response'))
+      }
+
+      worker.onerror = (errorEvent) => {
+        worker.terminate()
+        reject(new Error(errorEvent.message || 'Worker crashed'))
+      }
+
+      worker.postMessage({
+        type: 'analyze',
+        requestId,
+        files,
+        options,
+      })
+    })
   }
 
   function selectNode(path: string) {
@@ -300,7 +349,7 @@
       <div class="topbar-actions">
         <label class="upload-btn">
           <input type="file" multiple accept=".json,application/json" onchange={handleFiles} hidden />
-          {loading ? 'Analyzing…' : 'Load JSON'}
+          {loading ? loadingLabel : 'Load JSON'}
         </label>
         <button class="ghost-btn" onclick={() => (showDiet = !showDiet)}>{showDiet ? 'Explorer' : 'Schema Diet'}</button>
         <button class="ghost-btn" onclick={() => (sidebarCollapsed = !sidebarCollapsed)}>{sidebarCollapsed ? 'Show Controls' : 'Hide Controls'}</button>
