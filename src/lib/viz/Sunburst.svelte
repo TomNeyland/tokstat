@@ -19,7 +19,7 @@
   let { root, width, height, colorMode, insights = [], onhover, onclick }: Props = $props()
 
   let insightPaths = $derived(new Set(
-    insights.sort((a, b) => b.savings_tokens - a.savings_tokens).slice(0, 10).map(i => i.path)
+    insights.toSorted((a, b) => b.savings_tokens - a.savings_tokens).slice(0, 10).map(i => i.path)
   ))
 
   let cx = $derived(width / 2)
@@ -217,7 +217,7 @@
     font-family: var(--font-mono);
     font-size: 10px;
     font-weight: 500;
-    fill: var(--bg-root);
+    fill: white;
     paint-order: stroke fill;
     stroke: rgba(0,0,0,0.5);
     stroke-width: 3px;

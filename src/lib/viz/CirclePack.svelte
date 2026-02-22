@@ -19,7 +19,7 @@
   let { root, width, height, colorMode, insights = [], onhover, onclick }: Props = $props()
 
   let insightPaths = $derived(new Set(
-    insights.sort((a, b) => b.savings_tokens - a.savings_tokens).slice(0, 10).map(i => i.path)
+    insights.toSorted((a, b) => b.savings_tokens - a.savings_tokens).slice(0, 10).map(i => i.path)
   ))
 
   // ── D3 pack layout ──

@@ -21,7 +21,7 @@
   // Top 10 insight paths for annotations
   let insightPaths = $derived(new Set(
     insights
-      .sort((a, b) => b.savings_tokens - a.savings_tokens)
+      .toSorted((a, b) => b.savings_tokens - a.savings_tokens)
       .slice(0, 10)
       .map(i => i.path)
   ))
@@ -85,6 +85,13 @@
   {width}
   {height}
 >
+  <defs>
+    {#each layoutNodes as node (node.data.path)}
+      <clipPath id="clip-{node.data.path.replace(/[^a-zA-Z0-9]/g, '_')}">
+        <rect x={node.x0} y={node.y0} width={node.x1 - node.x0} height={node.y1 - node.y0} />
+      </clipPath>
+    {/each}
+  </defs>
   {#each layoutNodes as node (node.data.path)}
     {@const x = node.x0}
     {@const y = node.y0}
@@ -94,6 +101,7 @@
     {@const t = nodeThermalValue(node)}
     {@const glow = glowParams(t)}
     {@const hovered = hoveredPath === node.data.path}
+    {@const clipId = "clip-" + node.data.path.replace(/[^a-zA-Z0-9]/g, '_')}
 
     <g
       class="node"
@@ -123,23 +131,24 @@
         style="{glow.radius > 0 ? `filter: drop-shadow(0 0 ${glow.radius}px ${color});` : ''} cursor: pointer; transition: opacity 50ms, stroke 50ms;"
       />
       {#if showLabel(node)}
-        <text
-          x={x + 6}
-          y={y + 14}
-          class="label"
-          clip-path="inset(0 {Math.max(0, w - 12)}px 0 0)"
-        >
-          {node.data.name}
-        </text>
-        {#if h > 34}
+        <g clip-path="url(#{clipId})">
           <text
             x={x + 6}
-            y={y + 26}
-            class="sublabel"
+            y={y + 14}
+            class="label"
           >
-            {Math.round(node.data.tokens.total.avg)} tok
+            {node.data.name}
           </text>
-        {/if}
+          {#if h > 34}
+            <text
+              x={x + 6}
+              y={y + 26}
+              class="sublabel"
+            >
+              {Math.round(node.data.tokens.total.avg)} tok
+            </text>
+          {/if}
+        </g>
       {/if}
       {#if insightPaths.has(node.data.path)}
         <circle
@@ -166,7 +175,7 @@
     font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 500;
-    fill: var(--bg-root);
+    fill: white;
     paint-order: stroke fill;
     stroke: rgba(0,0,0,0.5);
     stroke-width: 3px;
@@ -177,7 +186,7 @@
     font-family: var(--font-mono);
     font-size: 10px;
     font-weight: 400;
-    fill: var(--bg-root);
+    fill: white;
     opacity: 0.7;
     paint-order: stroke fill;
     stroke: rgba(0,0,0,0.5);

@@ -19,7 +19,7 @@
   let { root, width, height, colorMode, insights = [], onhover, onclick }: Props = $props()
 
   let insightPaths = $derived(new Set(
-    insights.sort((a, b) => b.savings_tokens - a.savings_tokens).slice(0, 10).map(i => i.path)
+    insights.toSorted((a, b) => b.savings_tokens - a.savings_tokens).slice(0, 10).map(i => i.path)
   ))
 
   // ── D3 partition layout (linear) ──
@@ -147,7 +147,7 @@
     font-family: var(--font-mono);
     font-size: 11px;
     font-weight: 500;
-    fill: var(--bg-root);
+    fill: white;
     paint-order: stroke fill;
     stroke: rgba(0,0,0,0.5);
     stroke-width: 3px;
@@ -158,7 +158,7 @@
     font-family: var(--font-mono);
     font-size: 10px;
     font-weight: 400;
-    fill: var(--bg-root);
+    fill: white;
     opacity: 0.7;
     paint-order: stroke fill;
     stroke: rgba(0,0,0,0.5);

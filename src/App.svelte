@@ -26,8 +26,10 @@
   // ── Data loading: engine output, file picker, or mock ──
   const preloadedData = loadAnalysisData()
 
-  type AppPhase = 'loading' | 'picker' | 'analyzing' | 'ready'
-  let phase = $state<AppPhase>(preloadedData ? 'ready' : 'picker')
+  // In dev mode (no preloaded data), use mock data and go straight to the viz.
+  // The "Load JSON" button in TopBar lets users switch to the file picker.
+  type AppPhase = 'picker' | 'analyzing' | 'ready'
+  let phase = $state<AppPhase>('ready')
   let data = $state<AnalysisOutput>(preloadedData ?? mockOutput)
   let analysisProgress = $state(0)
   let analysisTotalFiles = $state(0)
