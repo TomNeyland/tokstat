@@ -8,10 +8,7 @@
   import DetailPanel from './lib/components/DetailPanel.svelte'
   import SchemaDiet from './lib/components/SchemaDiet.svelte'
   import Tooltip from './lib/components/Tooltip.svelte'
-  import Treemap from './lib/viz/Treemap.svelte'
-  import Sunburst from './lib/viz/Sunburst.svelte'
-  import CirclePack from './lib/viz/CirclePack.svelte'
-  import Icicle from './lib/viz/Icicle.svelte'
+  import VizContainer from './lib/viz/VizContainer.svelte'
 
   // ── App state ──
   let vizMode = $state<'Treemap' | 'Sunburst' | 'Pack' | 'Icicle'>('Treemap')
@@ -105,43 +102,15 @@
         <!-- Dot grid background -->
         <div class="dot-grid"></div>
 
-        {#if vizMode === 'Treemap'}
-          <Treemap
-            root={currentNode}
-            width={vizWidth}
-            height={vizHeight}
-            {colorMode}
-            onhover={handleNodeHover}
-            onclick={handleNodeClick}
-          />
-        {:else if vizMode === 'Sunburst'}
-          <Sunburst
-            root={currentNode}
-            width={vizWidth}
-            height={vizHeight}
-            {colorMode}
-            onhover={handleNodeHover}
-            onclick={handleNodeClick}
-          />
-        {:else if vizMode === 'Pack'}
-          <CirclePack
-            root={currentNode}
-            width={vizWidth}
-            height={vizHeight}
-            {colorMode}
-            onhover={handleNodeHover}
-            onclick={handleNodeClick}
-          />
-        {:else if vizMode === 'Icicle'}
-          <Icicle
-            root={currentNode}
-            width={vizWidth}
-            height={vizHeight}
-            {colorMode}
-            onhover={handleNodeHover}
-            onclick={handleNodeClick}
-          />
-        {/if}
+        <VizContainer
+          root={currentNode}
+          {vizMode}
+          {colorMode}
+          width={vizWidth}
+          height={vizHeight}
+          onhover={handleNodeHover}
+          onclick={handleNodeClick}
+        />
       </div>
     </main>
 
@@ -218,10 +187,14 @@
     z-index: 0;
   }
 
-  .viz-canvas :global(svg) {
+  .viz-canvas :global(.viz-container) {
     position: absolute;
     inset: 0;
     z-index: 1;
   }
 
+  .viz-canvas :global(svg) {
+    position: absolute;
+    inset: 0;
+  }
 </style>
