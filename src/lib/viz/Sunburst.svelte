@@ -154,7 +154,7 @@
           fill={color}
           stroke="var(--bg-root)"
           stroke-width="1"
-          style="filter: drop-shadow(0 0 {glow.radius}px {color}); opacity: {hovered ? 1 : 0.85 + t * 0.15}; cursor: pointer; transition: opacity 50ms;"
+          style="{glow.radius > 0 ? `filter: drop-shadow(0 0 ${glow.radius}px ${color});` : ''} cursor: pointer; transition: opacity 50ms;"
         />
         {#if showLabel(node)}
           <text

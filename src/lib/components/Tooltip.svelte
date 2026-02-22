@@ -27,15 +27,15 @@
     <div class="stats">
       <div class="stat">
         <span class="stat-label">avg</span>
-        <span class="stat-value">{node.tokens.total.avg} tok</span>
+        <span class="stat-value">{Math.round(node.tokens.total.avg)} tok</span>
       </div>
       <div class="stat">
         <span class="stat-label">p95</span>
-        <span class="stat-value">{node.tokens.total.p95} tok</span>
+        <span class="stat-value">{Math.round(node.tokens.total.p95)} tok</span>
       </div>
       <div class="stat">
         <span class="stat-label">max</span>
-        <span class="stat-value">{node.tokens.total.max} tok</span>
+        <span class="stat-value">{Math.round(node.tokens.total.max)} tok</span>
       </div>
       <div class="stat">
         <span class="stat-label">cost</span>

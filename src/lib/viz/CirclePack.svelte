@@ -105,7 +105,7 @@
         fill={isLeaf ? color : `color-mix(in srgb, ${color} 15%, transparent)`}
         stroke={color}
         stroke-width={hovered ? 2.5 : 1.5}
-        style="filter: drop-shadow(0 0 {glow.radius}px {color}); opacity: {hovered ? 1 : 0.85 + t * 0.15}; cursor: pointer; transition: opacity 50ms, stroke-width 50ms;"
+        style="{glow.radius > 0 ? `filter: drop-shadow(0 0 ${glow.radius}px ${color});` : ''} cursor: pointer; transition: opacity 50ms, stroke-width 50ms;"
       />
       {#if showLabel(node)}
         <text
@@ -125,7 +125,7 @@
             class="pack-sublabel"
             text-anchor="middle"
           >
-            {node.data.tokens.total.avg} tok
+            {Math.round(node.data.tokens.total.avg)} tok
           </text>
         {/if}
       {/if}

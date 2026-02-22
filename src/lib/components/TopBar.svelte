@@ -13,7 +13,7 @@
   let costFormatted = $derived('$' + summary.cost_per_instance.toFixed(4))
   let overheadPct = $derived(Math.round(summary.overhead_ratio * 100) + '%')
   let nullWastePct = $derived(Math.round(summary.null_waste_ratio * 100) + '%')
-  let avgTokens = $derived(summary.avg_tokens_per_instance.toLocaleString())
+  let avgTokens = $derived(Math.round(summary.avg_tokens_per_instance).toLocaleString())
 </script>
 
 <header class="top-bar">

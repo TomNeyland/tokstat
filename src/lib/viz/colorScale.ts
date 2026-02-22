@@ -51,10 +51,14 @@ export const depthScale = scaleOrdinal<number, string>()
   .range(DEPTH_COLORS)
 
 // ── Glow parameters based on thermal value (0-1) ──
+// Subtle glow — cold nodes don't glow at all, hot nodes get a faint halo.
+// In dense layouts the overlapping halos compound, so keep this restrained.
 export function glowParams(t: number): { radius: number; opacity: number } {
+  // Only the hottest 40% of nodes glow at all
+  const intensity = Math.max(0, (t - 0.6) / 0.4)
   return {
-    radius: 8 + t * 16, // 8px at cold → 24px at hot
-    opacity: 0.15 + t * 0.15, // 15% at cold → 30% at hot
+    radius: intensity * 12, // 0px at cold → 12px at hottest
+    opacity: intensity * 0.2, // 0% at cold → 20% at hottest
   }
 }
 

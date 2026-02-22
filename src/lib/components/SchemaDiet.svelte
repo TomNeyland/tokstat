@@ -82,7 +82,7 @@
     {#if checked.size > 0}
       <div class="savings-banner">
         <span class="savings-label">Projected Savings</span>
-        <span class="savings-tokens">{totalSavingsTokens} tok/instance</span>
+        <span class="savings-tokens">{Math.round(totalSavingsTokens)} tok/instance</span>
         <span class="savings-cost">${scaledSavings.toFixed(2)} at {scale.toLocaleString()} generations</span>
       </div>
     {/if}
@@ -99,7 +99,7 @@
             <span class="field-name">{field.path}</span>
             <div class="field-meta">
               <span class="field-fill">{Math.round(field.fillRate * 100)}% fill</span>
-              <span class="field-tokens">{field.avgTokens} tok</span>
+              <span class="field-tokens">{Math.round(field.avgTokens)} tok</span>
             </div>
           </div>
         </label>

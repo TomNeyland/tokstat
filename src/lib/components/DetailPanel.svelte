@@ -50,23 +50,23 @@
         <div class="stats-table">
           <div class="stats-row">
             <span class="stats-key">avg</span>
-            <span class="stats-val">{node.tokens.total.avg} tok</span>
+            <span class="stats-val">{Math.round(node.tokens.total.avg)} tok</span>
           </div>
           <div class="stats-row">
             <span class="stats-key">min</span>
-            <span class="stats-val">{node.tokens.total.min} tok</span>
+            <span class="stats-val">{Math.round(node.tokens.total.min)} tok</span>
           </div>
           <div class="stats-row">
             <span class="stats-key">max</span>
-            <span class="stats-val">{node.tokens.total.max} tok</span>
+            <span class="stats-val">{Math.round(node.tokens.total.max)} tok</span>
           </div>
           <div class="stats-row">
             <span class="stats-key">p50</span>
-            <span class="stats-val">{node.tokens.total.p50} tok</span>
+            <span class="stats-val">{Math.round(node.tokens.total.p50)} tok</span>
           </div>
           <div class="stats-row">
             <span class="stats-key">p95</span>
-            <span class="stats-val">{node.tokens.total.p95} tok</span>
+            <span class="stats-val">{Math.round(node.tokens.total.p95)} tok</span>
           </div>
         </div>
       </div>
@@ -155,7 +155,7 @@
               <span class="insight-severity">{insight.severity}</span>
               <p class="insight-message">{insight.message}</p>
               <span class="insight-savings">
-                Saves {insight.savings_tokens} tok/instance (${insight.savings_usd_per_10k.toFixed(2)}/10K)
+                Saves {Math.round(insight.savings_tokens)} tok/instance (${insight.savings_usd_per_10k.toFixed(2)}/10K)
               </span>
             </div>
           {/each}

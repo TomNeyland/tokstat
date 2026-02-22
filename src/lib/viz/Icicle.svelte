@@ -107,7 +107,7 @@
         fill={color}
         stroke={hovered ? 'var(--text-primary)' : 'var(--bg-root)'}
         stroke-width={hovered ? 1.5 : 0.5}
-        style="filter: drop-shadow(0 0 {glow.radius * 0.5}px {color}); opacity: {hovered ? 1 : 0.85 + t * 0.15}; cursor: pointer; transition: opacity 50ms, stroke 50ms;"
+        style="{glow.radius > 0 ? `filter: drop-shadow(0 0 ${glow.radius * 0.5}px ${color});` : ''} cursor: pointer; transition: opacity 50ms, stroke 50ms;"
       />
       {#if showLabel(node)}
         <text
@@ -126,7 +126,7 @@
             text-anchor="end"
             dominant-baseline="central"
           >
-            {node.data.tokens.total.avg} tok
+            {Math.round(node.data.tokens.total.avg)} tok
           </text>
         {/if}
       {/if}
