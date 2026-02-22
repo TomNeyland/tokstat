@@ -47,6 +47,12 @@
   const breadcrumbChain = $derived(report ? findChain(report.tree, rootPath) : [])
 
   const topInsightPaths = $derived(new Set((insights ?? []).slice(0, 10).map((i: any) => i.path)))
+  const globalTopCostFields = $derived(
+    allNodes
+      .filter((node: any) => node.path !== 'root' && (node.tokens?.total?.avg ?? 0) > 0)
+      .sort((a: any, b: any) => (b.tokens?.total?.avg ?? 0) - (a.tokens?.total?.avg ?? 0))
+      .slice(0, 10),
+  )
 
   const schemaDietCandidates = $derived(
     allNodes
@@ -319,6 +325,47 @@
           </label>
           <div class="small-meta">{report.summary.model} • {report.summary.tokenizer}</div>
           <div class="small-meta">{report.summary.glob ?? 'browser upload'}</div>
+        </section>
+
+        <section class="panel">
+          <h2>Corpus Overview</h2>
+          <div class="small-meta">Always root-level totals (all tokens), even when drilled into a subtree.</div>
+          {#if rootPath !== 'root'}
+            <button class="overview-reset" onclick={resetRoot}>Currently scoped to `{shortPath(rootPath)}` • Reset to root</button>
+          {/if}
+
+          <div class="overview-stats">
+            <div class="overview-card">
+              <span class="stat-label">Avg Tokens / Inst</span>
+              <span class="stat-value">{fmtTok(report.tree.tokens.total.avg)}</span>
+            </div>
+            <div class="overview-card">
+              <span class="stat-label">Corpus Cost</span>
+              <span class="stat-value">{fmtUsd(report.tree.cost.total_corpus)}</span>
+            </div>
+          </div>
+
+          <div class="overview-breakdown">
+            <div class="token-bar">
+              <div class="token-seg schema" style={`width:${(report.tree.tokens.schema_overhead / Math.max(report.tree.tokens.total.avg, 1)) * 100}%`}></div>
+              <div class="token-seg value" style={`width:${(report.tree.tokens.value_payload / Math.max(report.tree.tokens.total.avg, 1)) * 100}%`}></div>
+              <div class="token-seg nul" style={`width:${(report.tree.tokens.null_waste / Math.max(report.tree.tokens.total.avg, 1)) * 100}%`}></div>
+            </div>
+            <div class="token-legend">
+              <span>schema {fmtTok(report.tree.tokens.schema_overhead)}</span>
+              <span>value {fmtTok(report.tree.tokens.value_payload)}</span>
+              <span>null {fmtTok(report.tree.tokens.null_waste)}</span>
+            </div>
+          </div>
+
+          <div class="overview-list">
+            {#each globalTopCostFields as node}
+              <button class="overview-item" onclick={() => selectNode(node.path)}>
+                <span class="overview-item-path">{shortPath(node.path)}</span>
+                <span class="overview-item-meta">{fmtTok(node.tokens.total.avg)} • {fmtPct(node.fill_rate)} fill</span>
+              </button>
+            {/each}
+          </div>
         </section>
 
         {#if !showDiet}
@@ -1177,6 +1224,84 @@
     gap: var(--space-1);
     max-height: 52vh;
     overflow: auto;
+  }
+
+  .overview-reset {
+    width: 100%;
+    margin-top: var(--space-2);
+    margin-bottom: var(--space-3);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border-default));
+    background: var(--accent-muted);
+    color: var(--accent-hover);
+    border-radius: var(--radius-md);
+    padding: var(--space-2);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .overview-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+    margin: var(--space-3) 0;
+  }
+
+  .overview-card {
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+    border-radius: var(--radius-md);
+    padding: var(--space-2);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .overview-breakdown {
+    margin-bottom: var(--space-3);
+  }
+
+  .overview-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    max-height: 220px;
+    overflow: auto;
+  }
+
+  .overview-item {
+    width: 100%;
+    text-align: left;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+    border-radius: var(--radius-md);
+    padding: var(--space-2);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    cursor: pointer;
+    transition: border-color var(--duration-fast) var(--ease-out);
+  }
+
+  .overview-item:hover {
+    border-color: var(--border-strong);
+  }
+
+  .overview-item-path {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .overview-item-meta {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-secondary);
   }
 
   .diet-row {
