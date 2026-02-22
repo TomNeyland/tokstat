@@ -1,0 +1,1 @@
+{"pmid":"1002","title":"Trial B","population":{"sample_size":240,"description":"Adults with stage II disease"},"endpoints":[{"endpoint_phrase":"Overall survival","point_estimate":0.81,"confidence_interval":{"lower":0.75,"upper":0.88}}],"notes":"Follow-up pending"}

@@ -1,0 +1,1 @@
+{"pmid":"1003","title":"Trial C","population":{"sample_size":88,"description":"Pediatric"},"endpoints":[{"endpoint_phrase":"Adverse events rate","point_estimate":0.19,"adverse_events":[{"event":"Nausea","mechanism_of_action":null},{"event":"Rash","mechanism_of_action":"immune-mediated"}]}],"notes":null}

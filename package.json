@@ -4,7 +4,11 @@
   "description": "WinDirStat for your LLM-generated JSON",
   "private": true,
   "type": "module",
+  "bin": {
+    "tokstat": "./bin/tokstat.js"
+  },
   "scripts": {
+    "tokstat": "node ./bin/tokstat.js",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
