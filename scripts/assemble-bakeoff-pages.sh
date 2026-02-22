@@ -20,9 +20,16 @@ OUT_DIR="$3"
 CODEX_LABEL="${4:-Codex version}"
 OTHER_LABEL="${5:-Claude version}"
 
-mkdir -p "$OUT_DIR/codex" "$OUT_DIR/other"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+mkdir -p "$OUT_DIR/codex" "$OUT_DIR/other" "$OUT_DIR/img"
 cp -R "$CODEX_DIST"/. "$OUT_DIR/codex/"
 cp -R "$OTHER_DIST"/. "$OUT_DIR/other/"
+
+# Copy screenshots if they exist
+if [[ -d "$SCRIPT_DIR/screenshots" ]]; then
+  cp "$SCRIPT_DIR"/screenshots/*.webp "$OUT_DIR/img/" 2>/dev/null || true
+fi
 
 cat >"$OUT_DIR/index.html" <<'HTMLEOF'
 <!doctype html>
@@ -453,6 +460,15 @@ cat >"$OUT_DIR/index.html" <<'HTMLEOF'
       color: var(--accent);
     }
 
+    .build-thumb {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 16px;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+    }
+
     /* ── Footer ── */
     footer {
       text-align: center;
@@ -488,7 +504,7 @@ cat >"$OUT_DIR/index.html" <<'HTMLEOF'
     </div>
 
     <div class="screenshot-slot">
-      <span class="screenshot-placeholder">screenshot goes here</span>
+      <img src="./img/claude.webp" alt="tokstat circle pack visualization showing per-field token costs" />
     </div>
   </section>
 
@@ -542,7 +558,7 @@ cat >"$OUT_DIR/index.html" <<'HTMLEOF'
       <span class="mode-pill">Icicle</span>
     </div>
     <div class="screenshot-slot">
-      <span class="screenshot-placeholder">viz modes screenshot goes here</span>
+      <img src="./img/codex.webp" alt="tokstat alternate implementation with circle pack and cohort detection" />
     </div>
   </section>
 
@@ -584,11 +600,13 @@ HTMLEOF
 # Inject the dynamic labels into the build cards
 cat >>"$OUT_DIR/index.html" <<EOF
       <a class="build-card" href="./codex/">
+        <img class="build-thumb" src="./img/codex.webp" alt="${CODEX_LABEL} screenshot" />
         <div class="build-label">${CODEX_LABEL}</div>
         <div class="build-desc">Built with Codex. Full interactive visualization with analysis engine.</div>
         <div class="build-link">Open &rarr;</div>
       </a>
       <a class="build-card" href="./other/">
+        <img class="build-thumb" src="./img/claude.webp" alt="${OTHER_LABEL} screenshot" />
         <div class="build-label">${OTHER_LABEL}</div>
         <div class="build-desc">Built with Claude Code. Full interactive visualization with analysis engine.</div>
         <div class="build-link">Open &rarr;</div>
