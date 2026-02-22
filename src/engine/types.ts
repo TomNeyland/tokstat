@@ -168,6 +168,22 @@ export interface AnalysisOutput {
   insights: Insight[]
 }
 
+// ── Cohorts ──────────────────────────────────────────────────────────────────
+
+export interface Cohort {
+  id: string                // fingerprint string (top-level keys + types)
+  label: string             // human-readable auto-generated label
+  file_count: number
+  file_indices: number[]    // indices into the original files array
+}
+
+export interface CohortedOutput {
+  schema: 'tokstat/v1'
+  cohorts: Cohort[]
+  combined: AnalysisOutput
+  per_cohort: Record<string, AnalysisOutput>  // cohort id → analysis
+}
+
 // ── CLI Options ─────────────────────────────────────────────────────────────
 
 export interface CliOptions {

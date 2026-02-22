@@ -4,7 +4,7 @@ import { writeFileSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import open from 'open'
-import type { AnalysisOutput } from '../engine/types.ts'
+import type { CohortedOutput } from '../engine/types.ts'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const projectRoot = resolve(__dirname, '../..')
@@ -16,7 +16,7 @@ const projectRoot = resolve(__dirname, '../..')
  * interfering with Svelte compilation.
  */
 export async function startDevServer(
-  data: AnalysisOutput,
+  data: CohortedOutput,
   port: number,
   autoOpen: boolean,
 ): Promise<void> {

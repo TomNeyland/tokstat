@@ -4,7 +4,7 @@ import { Command } from 'commander'
 import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import type { CliOptions } from '../engine/types.ts'
-import { runPipeline } from '../engine/pipeline.ts'
+import { runPipeline, runCohortedPipeline } from '../engine/pipeline.ts'
 import { formatJson } from '../formatters/jsonFormatter.ts'
 import { formatLlm } from '../formatters/llmFormatter.ts'
 
@@ -77,18 +77,22 @@ switch (options.format) {
   }
 
   case 'interactive': {
+    // Interactive mode uses cohorting for mixed-schema corpora
+    const cohortedOutput = runCohortedPipeline(options)
+    log(`  ${cohortedOutput.cohorts.length} schema cohort(s) detected`)
+
     if (options.out) {
       // Build self-contained HTML
       log('  Building self-contained HTML...')
       const { buildSelfContainedHtml } = await import('./buildHtml.ts')
       const outPath = resolve(options.out)
-      await buildSelfContainedHtml(output, outPath)
+      await buildSelfContainedHtml(cohortedOutput, outPath)
       log(`  Written to ${outPath}`)
     } else {
       // Start dev server
       log('  Starting visualization server...')
       const { startDevServer } = await import('./server.ts')
-      await startDevServer(output, options.port, !options.noOpen)
+      await startDevServer(cohortedOutput, options.port, !options.noOpen)
     }
     break
   }

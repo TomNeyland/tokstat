@@ -34,3 +34,7 @@ export function getModelPricing(modelId: string): ModelPricing {
   }
   return pricing
 }
+
+export function getAllStaticModels(): ModelPricing[] {
+  return Object.values(MODELS)
+}

@@ -1,4 +1,4 @@
-import type { AnalysisOutput } from '../../engine/types'
+import type { CohortedOutput } from '../../engine/types'
 import type { WorkerMessage } from '../../engine/worker'
 import AnalysisWorker from '../../engine/worker?worker&inline'
 
@@ -15,17 +15,17 @@ declare const __TOKSTAT_DATA_JSON__: string | undefined
  * 2. Vite `define`-injected JSON (CLI dev server mode)
  * 3. null (dev mode without data — app shows mock/reference)
  */
-export function loadAnalysisData(): AnalysisOutput | null {
+export function loadAnalysisData(): CohortedOutput | null {
   // Try embedded script tag first (self-contained HTML build)
   const scriptEl = document.getElementById('tokstat-data')
   if (scriptEl && scriptEl.textContent) {
-    return JSON.parse(scriptEl.textContent) as AnalysisOutput
+    return JSON.parse(scriptEl.textContent) as CohortedOutput
   }
 
   // Try Vite define-injected data (CLI dev server mode)
   try {
     if (typeof __TOKSTAT_DATA_JSON__ !== 'undefined') {
-      return JSON.parse(__TOKSTAT_DATA_JSON__) as AnalysisOutput
+      return JSON.parse(__TOKSTAT_DATA_JSON__) as CohortedOutput
     }
   } catch {
     // __TOKSTAT_DATA_JSON__ not defined — not running via CLI
@@ -42,13 +42,13 @@ export function loadAnalysisData(): AnalysisOutput | null {
 export function createWorkerPipeline(): {
   analyze: (files: { name: string; content: string }[], model: string) => void
   onprogress: (cb: (processed: number, total: number) => void) => void
-  onresult: (cb: (data: AnalysisOutput) => void) => void
+  onresult: (cb: (data: CohortedOutput) => void) => void
   terminate: () => void
 } {
   const worker: Worker = new AnalysisWorker()
 
   let progressCb: ((processed: number, total: number) => void) | null = null
-  let resultCb: ((data: AnalysisOutput) => void) | null = null
+  let resultCb: ((data: CohortedOutput) => void) | null = null
 
   worker.onmessage = (e: MessageEvent<WorkerMessage>) => {
     const msg = e.data

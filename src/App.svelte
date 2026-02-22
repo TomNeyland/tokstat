@@ -1,9 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import type { AnalysisNode, AnalysisOutput } from './engine/types'
+  import type { AnalysisNode, CohortedOutput, ModelPricing } from './engine/types'
   import { filterTree, recomputeSummary, countIgnoredFields } from './engine/ignore'
+  import { calculateCosts } from './engine/costCalculation'
+  import { getAllStaticModels } from './engine/pricing'
+  import { fetchLivePricing } from './engine/pricingFetcher'
   import { loadAnalysisData, createWorkerPipeline } from './lib/viz/dataLoader'
-  import { mockOutput } from './lib/viz/mockData'
+  import { mockCohortedOutput } from './lib/viz/mockData'
   import FileDropZone from './lib/components/FileDropZone.svelte'
   import AnalysisProgress from './lib/components/AnalysisProgress.svelte'
   import TopBar from './lib/components/TopBar.svelte'
@@ -23,6 +26,9 @@
   let sidebarCollapsed = $state(false)
   let searchQuery = $state('')
 
+  // ── Model pricing ──
+  let availableModels = $state<ModelPricing[]>(getAllStaticModels())
+
   // ── Data loading: engine output, file picker, or mock ──
   const preloadedData = loadAnalysisData()
 
@@ -30,9 +36,17 @@
   // The "Load JSON" button in TopBar lets users switch to the file picker.
   type AppPhase = 'picker' | 'analyzing' | 'ready'
   let phase = $state<AppPhase>('ready')
-  let data = $state<AnalysisOutput>(preloadedData ?? mockOutput)
+  let cohortedData = $state<CohortedOutput>(preloadedData ?? mockCohortedOutput)
   let analysisProgress = $state(0)
   let analysisTotalFiles = $state(0)
+
+  // ── Cohort selection ──
+  let activeCohort = $state<string>('combined')
+  let activeOutput = $derived(
+    activeCohort === 'combined'
+      ? cohortedData.combined
+      : cohortedData.per_cohort[activeCohort]
+  )
 
   function handleFiles(files: { name: string; content: string }[]) {
     phase = 'analyzing'
@@ -45,36 +59,51 @@
       analysisTotalFiles = total
     })
     pipeline.onresult((result) => {
-      data = result
+      cohortedData = result
+      activeCohort = 'combined'
       phase = 'ready'
       pipeline.terminate()
     })
     pipeline.analyze(files, model)
   }
 
+  // ── Cost recomputation on model change ──
+  $effect(() => {
+    const pricing = availableModels.find(m => m.model_id === model)
+    if (!pricing) return
+
+    // Recompute costs on all trees (cheap tree walk, no re-tokenization)
+    calculateCosts(cohortedData.combined.tree, pricing, cohortedData.combined.summary.file_count)
+    for (const output of Object.values(cohortedData.per_cohort)) {
+      calculateCosts(output.tree, pricing, output.summary.file_count)
+    }
+    // Trigger reactivity
+    cohortedData = { ...cohortedData }
+  })
+
   // ── Ignore system ──
   let ignorePatterns = $state<string[]>([])
   let filteredTree = $derived(
-    ignorePatterns.length > 0 ? filterTree(data.tree, ignorePatterns) : data.tree
+    ignorePatterns.length > 0 ? filterTree(activeOutput.tree, ignorePatterns) : activeOutput.tree
   )
   let filteredSummary = $derived(
     ignorePatterns.length > 0
       ? recomputeSummary(
           filteredTree,
-          data.summary.output_price_per_1m / 1_000_000,
-          data.summary.file_count,
-          data.summary.glob,
-          data.summary.model,
-          data.summary.tokenizer,
-          data.summary.output_price_per_1m
+          activeOutput.summary.output_price_per_1m / 1_000_000,
+          activeOutput.summary.file_count,
+          activeOutput.summary.glob,
+          activeOutput.summary.model,
+          activeOutput.summary.tokenizer,
+          activeOutput.summary.output_price_per_1m
         )
-      : data.summary
+      : activeOutput.summary
   )
 
   // ── Drill-down ──
   let drillPath = $state<AnalysisNode[]>([filteredTree])
 
-  // Reset drill path when ignore patterns change
+  // Reset drill path when filtered tree changes (ignore patterns or cohort switch)
   $effect(() => {
     const _ft = filteredTree // track dependency
     drillPath = [_ft]
@@ -118,6 +147,13 @@
   let vizHeight = $state(600)
 
   onMount(() => {
+    // Fetch live pricing (replace static models when available)
+    fetchLivePricing().then(live => {
+      availableModels = live
+    }).catch(() => {
+      // Static models already loaded — nothing to do
+    })
+
     if (!vizCanvasEl) return
     const ro = new ResizeObserver(entries => {
       const entry = entries[0]
@@ -190,8 +226,12 @@
       collapsed={sidebarCollapsed}
       summary={filteredSummary}
       tree={filteredTree}
+      cohorts={cohortedData.cohorts}
+      {activeCohort}
+      {availableModels}
       oncolorchange={(m) => colorMode = m as typeof colorMode}
       onmodelchange={(m) => model = m}
+      oncohortchange={(id) => activeCohort = id}
       ontogglecollapse={() => sidebarCollapsed = !sidebarCollapsed}
       ontogglediet={() => showDiet = !showDiet}
       ontoggleignore={() => showIgnore = !showIgnore}
@@ -208,7 +248,7 @@
           {colorMode}
           width={vizWidth}
           height={vizHeight}
-          insights={data.insights}
+          insights={activeOutput.insights}
           onhover={handleNodeHover}
           onclick={handleNodeClick}
           oncontextmenu={handleContextMenu}
@@ -219,7 +259,7 @@
     {#if showDetail && selectedNode}
       <DetailPanel
         node={selectedNode}
-        insights={data.insights}
+        insights={activeOutput.insights}
         visible={showDetail}
         onclose={() => selectedNode = null}
       />
@@ -237,7 +277,7 @@
     {#if showIgnore}
       <IgnorePanel
         patterns={ignorePatterns}
-        tree={data.tree}
+        tree={activeOutput.tree}
         visible={showIgnore}
         onchange={handleIgnoreChange}
         onclose={() => showIgnore = false}

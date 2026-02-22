@@ -1,4 +1,4 @@
-import type { AnalysisNode, AnalysisOutput, AnalysisSummary, Insight } from '../../engine/types'
+import type { AnalysisNode, AnalysisOutput, AnalysisSummary, CohortedOutput, Insight } from '../../engine/types'
 
 // Mock data shaped like real engine output. Use this for viz development
 // until the engine is wired in. Replace with real data in integration phase.
@@ -397,4 +397,16 @@ export const mockOutput: AnalysisOutput = {
   summary: mockSummary,
   tree: mockTree,
   insights: mockInsights,
+}
+
+export const mockCohortedOutput: CohortedOutput = {
+  schema: 'tokstat/v1',
+  cohorts: [{
+    id: 'mock',
+    label: 'All fields',
+    file_count: 13,
+    file_indices: Array.from({ length: 13 }, (_, i) => i),
+  }],
+  combined: mockOutput,
+  per_cohort: { mock: mockOutput },
 }

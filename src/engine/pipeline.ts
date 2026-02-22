@@ -1,13 +1,15 @@
 import fg from 'fast-glob'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import type { AnalysisOutput, CliOptions, FileTokens } from './types.ts'
+import type { AnalysisOutput, CohortedOutput, CliOptions, FileTokens, ModelPricing } from './types.ts'
 import { inferSchema } from './schemaInference.ts'
 import { tokenizeFile, collectValues, getEncoding } from './tokenization.ts'
 import { aggregate } from './aggregation.ts'
 import { detectInsights } from './insights.ts'
 import { calculateCosts } from './costCalculation.ts'
 import { getModelPricing } from './pricing.ts'
+import { detectCohorts } from './cohorts.ts'
+import type { Tiktoken } from 'js-tiktoken'
 
 interface ParsedFile {
   path: string
@@ -15,11 +17,106 @@ interface ParsedFile {
 }
 
 /**
+ * Analyze pre-parsed documents through stages 2-6 of the pipeline.
+ * Pure function: documents + config in, AnalysisOutput out.
+ */
+export function analyzeParsedDocuments(
+  documents: unknown[],
+  pricing: ModelPricing,
+  encoding: Tiktoken,
+  glob: string,
+  sampleValues: number,
+): AnalysisOutput {
+  // Stage 2: Schema inference
+  const schema = inferSchema(documents)
+
+  // Stage 3: Tokenization
+  const perFileTokens: Map<string, FileTokens>[] = []
+  const perFileValues: Map<string, unknown[]>[] = []
+
+  for (const doc of documents) {
+    perFileTokens.push(tokenizeFile(doc, schema, encoding))
+    perFileValues.push(collectValues(doc, schema))
+  }
+
+  // Stage 4: Aggregation
+  const tree = aggregate(schema, perFileTokens, perFileValues, sampleValues)
+
+  // Stage 5: Cost calculation
+  calculateCosts(tree, pricing, documents.length)
+
+  // Stage 6: Insights
+  const pricePerToken = pricing.output_per_1m / 1_000_000
+  const insights = detectInsights(tree, pricePerToken)
+
+  // Build summary
+  const avgTokens = tree.tokens.total.avg
+  const costPerInstance = avgTokens * pricePerToken
+
+  const summary = {
+    file_count: documents.length,
+    glob,
+    model: pricing.model_id,
+    tokenizer: pricing.tokenizer,
+    output_price_per_1m: pricing.output_per_1m,
+    corpus_total_tokens: avgTokens * documents.length,
+    corpus_total_cost: costPerInstance * documents.length,
+    avg_tokens_per_instance: avgTokens,
+    cost_per_instance: costPerInstance,
+    overhead_ratio: avgTokens > 0 ? tree.tokens.schema_overhead / avgTokens : 0,
+    null_waste_ratio: avgTokens > 0 ? tree.tokens.null_waste / avgTokens : 0,
+    cost_at_1k: costPerInstance * 1_000,
+    cost_at_10k: costPerInstance * 10_000,
+    cost_at_100k: costPerInstance * 100_000,
+    cost_at_1m: costPerInstance * 1_000_000,
+    top_insights: insights.slice(0, 5),
+  }
+
+  return { schema: 'tokstat/v1', summary, tree, insights }
+}
+
+/**
  * Run the full analysis pipeline.
  * Pure function: glob pattern + options in, AnalysisOutput out.
  */
 export function runPipeline(options: CliOptions): AnalysisOutput {
-  // Resolve tokenizer: if 'auto', derive from model; if custom pricing, default to o200k_base
+  const { pricing, tokenizerName } = resolvePricing(options)
+  const files = readFiles(options.glob)
+  const documents = files.map(f => f.parsed)
+  const encoding = getEncoding(tokenizerName)
+  return analyzeParsedDocuments(documents, pricing, encoding, options.glob, options.sampleValues)
+}
+
+/**
+ * Run the cohorting pipeline: detect cohorts, analyze each + combined.
+ */
+export function runCohortedPipeline(options: CliOptions): CohortedOutput {
+  const { pricing, tokenizerName } = resolvePricing(options)
+  const files = readFiles(options.glob)
+  const documents = files.map(f => f.parsed)
+  const encoding = getEncoding(tokenizerName)
+
+  // Detect cohorts
+  const cohorts = detectCohorts(documents)
+
+  // Analyze combined
+  const combined = analyzeParsedDocuments(documents, pricing, encoding, options.glob, options.sampleValues)
+
+  // Analyze per cohort
+  const per_cohort: Record<string, AnalysisOutput> = {}
+  for (const cohort of cohorts) {
+    const cohortDocs = cohort.file_indices.map(i => documents[i])
+    per_cohort[cohort.id] = analyzeParsedDocuments(
+      cohortDocs, pricing, encoding,
+      `${options.glob} [${cohort.label}]`,
+      options.sampleValues,
+    )
+  }
+
+  return { schema: 'tokstat/v1', cohorts, combined, per_cohort }
+}
+
+function resolvePricing(options: CliOptions): { pricing: ModelPricing; tokenizerName: string } {
   const resolvedTokenizer = options.tokenizer !== 'auto'
     ? options.tokenizer
     : options.costPer1k
@@ -36,68 +133,7 @@ export function runPipeline(options: CliOptions): AnalysisOutput {
     : getModelPricing(options.model)
 
   const tokenizerName = options.tokenizer === 'auto' ? pricing.tokenizer : options.tokenizer
-
-  // Stage 1: File reading
-  const files = readFiles(options.glob)
-
-  // Stage 2: Schema inference
-  const documents = files.map(f => f.parsed)
-  const schema = inferSchema(documents)
-
-  // Stage 3: Tokenization
-  const encoding = getEncoding(tokenizerName)
-  const perFileTokens: Map<string, FileTokens>[] = []
-  const perFileValues: Map<string, unknown[]>[] = []
-
-  for (const file of files) {
-    perFileTokens.push(tokenizeFile(file.parsed, schema, encoding))
-    perFileValues.push(collectValues(file.parsed, schema))
-  }
-
-  // Stage 4: Aggregation
-  const tree = aggregate(schema, perFileTokens, perFileValues, options.sampleValues)
-
-  // Stage 5: Cost calculation
-  calculateCosts(tree, pricing, files.length)
-
-  // Stage 6: Insights
-  const pricePerToken = pricing.output_per_1m / 1_000_000
-  const insights = detectInsights(tree, pricePerToken)
-
-  // Build summary
-  const avgTokens = tree.tokens.total.avg
-  const costPerInstance = avgTokens * pricePerToken
-  const totalOverhead = tree.tokens.schema_overhead
-  const totalNullWaste = tree.tokens.null_waste
-
-  const corpusTotalTokens = avgTokens * files.length
-  const corpusTotalCost = costPerInstance * files.length
-
-  const summary = {
-    file_count: files.length,
-    glob: options.glob,
-    model: pricing.model_id,
-    tokenizer: tokenizerName,
-    output_price_per_1m: pricing.output_per_1m,
-    corpus_total_tokens: corpusTotalTokens,
-    corpus_total_cost: corpusTotalCost,
-    avg_tokens_per_instance: avgTokens,
-    cost_per_instance: costPerInstance,
-    overhead_ratio: avgTokens > 0 ? totalOverhead / avgTokens : 0,
-    null_waste_ratio: avgTokens > 0 ? totalNullWaste / avgTokens : 0,
-    cost_at_1k: costPerInstance * 1_000,
-    cost_at_10k: costPerInstance * 10_000,
-    cost_at_100k: costPerInstance * 100_000,
-    cost_at_1m: costPerInstance * 1_000_000,
-    top_insights: insights.slice(0, 5),
-  }
-
-  return {
-    schema: 'tokstat/v1',
-    summary,
-    tree,
-    insights,
-  }
+  return { pricing, tokenizerName }
 }
 
 function readFiles(glob: string): ParsedFile[] {

@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
-import type { AnalysisOutput } from '../engine/types.ts'
+import type { CohortedOutput } from '../engine/types.ts'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const projectRoot = resolve(__dirname, '../..')
@@ -15,7 +15,7 @@ const projectRoot = resolve(__dirname, '../..')
  * so the vite config's data plugin injects the JSON into the HTML.
  */
 export async function buildSelfContainedHtml(
-  data: AnalysisOutput,
+  data: CohortedOutput,
   outPath: string,
 ): Promise<void> {
   const dataDir = mkdtempSync(resolve(tmpdir(), 'tokstat-data-'))

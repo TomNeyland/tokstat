@@ -1,6 +1,7 @@
 <script lang="ts">
-  import type { AnalysisSummary, AnalysisNode } from '../../engine/types'
+  import type { AnalysisSummary, AnalysisNode, Cohort, ModelPricing } from '../../engine/types'
   import CorpusOverview from './CorpusOverview.svelte'
+  import ModelCombobox from './ModelCombobox.svelte'
 
   type ColorMode = 'Cost' | 'Fill rate' | 'Overhead' | 'Depth'
 
@@ -10,8 +11,12 @@
     collapsed: boolean
     summary: AnalysisSummary
     tree: AnalysisNode
+    cohorts: Cohort[]
+    activeCohort: string
+    availableModels: ModelPricing[]
     oncolorchange: (mode: string) => void
     onmodelchange: (model: string) => void
+    oncohortchange: (cohortId: string) => void
     ontogglecollapse: () => void
     ontogglediet: () => void
     ontoggleignore: () => void
@@ -23,15 +28,21 @@
     collapsed,
     summary,
     tree,
+    cohorts,
+    activeCohort,
+    availableModels,
     oncolorchange,
     onmodelchange,
+    oncohortchange,
     ontogglecollapse,
     ontogglediet,
     ontoggleignore,
   }: Props = $props()
 
   const colorOptions: ColorMode[] = ['Cost', 'Fill rate', 'Overhead', 'Depth']
-  const models = ['gpt-4o', 'gpt-4o-mini', 'claude-sonnet-4-5', 'claude-haiku-3-5']
+
+  let showCohorts = $derived(cohorts.length > 1)
+  let totalFiles = $derived(cohorts.reduce((s, c) => s + c.file_count, 0))
 </script>
 
 <aside class="sidebar" class:collapsed>
@@ -46,6 +57,32 @@
   </button>
 
   {#if !collapsed}
+    {#if showCohorts}
+      <div class="section">
+        <span class="section-label">Scope</span>
+        <div class="cohort-list">
+          <button
+            class="cohort-row"
+            class:active={activeCohort === 'combined'}
+            onclick={() => oncohortchange('combined')}
+          >
+            <span class="cohort-label">Combined</span>
+            <span class="cohort-count">{totalFiles}</span>
+          </button>
+          {#each cohorts as cohort (cohort.id)}
+            <button
+              class="cohort-row"
+              class:active={activeCohort === cohort.id}
+              onclick={() => oncohortchange(cohort.id)}
+            >
+              <span class="cohort-label">{cohort.label}</span>
+              <span class="cohort-count">{cohort.file_count}</span>
+            </button>
+          {/each}
+        </div>
+      </div>
+    {/if}
+
     <div class="section">
       <span class="section-label">Color Mode</span>
       <div class="color-grid">
@@ -63,11 +100,11 @@
 
     <div class="section">
       <span class="section-label">Model</span>
-      <select class="model-select" value={model} onchange={(e) => onmodelchange(e.currentTarget.value)}>
-        {#each models as m}
-          <option value={m}>{m}</option>
-        {/each}
-      </select>
+      <ModelCombobox
+        models={availableModels}
+        selected={model}
+        onselect={onmodelchange}
+      />
       <span class="model-info">{summary.tokenizer} • {summary.file_count} files</span>
     </div>
 
@@ -154,6 +191,53 @@
     letter-spacing: 0.08em;
   }
 
+  .cohort-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .cohort-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-1-5) var(--space-3);
+    border-radius: var(--radius-md);
+    background: none;
+    border: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: color var(--duration-instant),
+                background var(--duration-instant),
+                border-color var(--duration-instant);
+  }
+
+  .cohort-row:hover {
+    border-color: var(--border-default);
+  }
+
+  .cohort-row.active {
+    background: var(--accent-muted);
+    border-color: var(--accent);
+    border-left: 3px solid var(--accent);
+  }
+
+  .cohort-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  .cohort-count {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+  }
+
   .color-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -184,28 +268,6 @@
     color: var(--text-primary);
     background: var(--accent-muted);
     border-color: var(--accent);
-  }
-
-  .model-select {
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--text-primary);
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-md);
-    padding: var(--space-2) var(--space-3);
-    cursor: pointer;
-    outline: none;
-  }
-
-  .model-select:focus {
-    border-color: var(--border-strong);
-    box-shadow: var(--shadow-glow);
-  }
-
-  .model-select option {
-    background: var(--bg-elevated);
-    color: var(--text-primary);
   }
 
   .model-info {
