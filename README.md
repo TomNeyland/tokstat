@@ -8,6 +8,27 @@ Point it at a corpus of structured outputs and see exactly where your tokens —
 npx tokstat ./data/**/*.json
 ```
 
+## Bakeoff
+
+This project is currently a bakeoff between two AI coding agents building the same tool from the same spec:
+
+| Branch | Agent | Model |
+|--------|-------|-------|
+| [`claude/tokstat`](https://github.com/TomNeyland/tokstat/tree/claude/tokstat) | Claude Code | Opus 4.6 |
+| [`codex/tokstat`](https://github.com/TomNeyland/tokstat/tree/codex/tokstat) | Codex | GPT 5.3 (high) |
+
+Both start from the same design system, specs, and fixtures. Same requirements, different implementations.
+
+**Claude Code (Opus 4.6):**
+
+![Claude Code implementation — circle pack with thermal colors, sidebar with cohort selector and model combobox](docs/screenshots/claude.webp)
+
+**Codex (GPT 5.3 high):**
+
+![Codex implementation — circle pack with tooltip, schema cohorts, and detail panel](docs/screenshots/codex.webp)
+
+**Live demo:** [tomneyland.github.io/tokstat](https://tomneyland.github.io/tokstat/)
+
 ## What it does
 
 You're running structured generation (OpenAI, Anthropic, Gemini) with JSON schemas. You're spending hundreds or thousands of dollars per run. You have no idea which fields cost what, which optional fields are rarely populated, or whether your 200-character field names are bleeding you dry.
