@@ -1,79 +1,44 @@
-import { spawn } from 'node:child_process'
-import { resolve } from 'node:path'
-import { writeFileSync, mkdtempSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { fileURLToPath } from 'node:url'
+import { createServer } from 'node:http'
 import open from 'open'
 import type { CohortedOutput } from '../engine/types.ts'
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url))
-const projectRoot = resolve(__dirname, '../..')
+const APP_URL = 'https://tomneyland.github.io/tokstat/other/index.html'
 
 /**
- * Start a Vite dev server with analysis data available to the app.
+ * Fetch the deployed tokstat app, inject analysis data, serve locally.
  *
- * We spawn vite as a subprocess to avoid tsx's module loader
- * interfering with Svelte compilation.
+ * The app is a single self-contained HTML file (built by vite-plugin-singlefile
+ * and deployed to GH Pages). It already looks for a <script id="tokstat-data">
+ * tag to load embedded analysis results.
  */
-export async function startDevServer(
+export async function startServer(
   data: CohortedOutput,
   port: number,
   autoOpen: boolean,
 ): Promise<void> {
-  const tmpDir = mkdtempSync(resolve(tmpdir(), 'tokstat-serve-'))
-  const dataPath = resolve(tmpDir, 'tokstat-data.json')
+  // Fetch the latest deployed app
+  const resp = await fetch(APP_URL)
+  const html = await resp.text()
 
-  // Write analysis data so Vite plugin can read it
-  writeFileSync(dataPath, JSON.stringify(data), 'utf-8')
+  // Inject analysis data before </head>
+  const dataScript = `<script id="tokstat-data" type="application/json">${JSON.stringify(data)}</script>`
+  const injectedHtml = html.replace('</head>', `${dataScript}\n</head>`)
 
-  const viteProcess = spawn(
-    resolve(projectRoot, 'node_modules/.bin/vite'),
-    ['--port', String(port), '--strictPort'],
-    {
-      cwd: projectRoot,
-      env: {
-        ...process.env,
-        TOKSTAT_DATA_PATH: dataPath,
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    },
-  )
-
-  // Wait for server to be ready, then print the URL
-  const url = `http://localhost:${port}`
-
-  viteProcess.stdout.on('data', (chunk: Buffer) => {
-    const text = chunk.toString()
-    // Vite prints "Local: http://..." when ready
-    if (text.includes('Local:') || text.includes('localhost')) {
-      console.log(`\n  Report available at ${url}`)
-      console.log('  Press Ctrl+C to exit\n')
-      if (autoOpen) {
-        open(url)
-      }
-    }
+  const server = createServer((_req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+    res.end(injectedHtml)
   })
 
-  viteProcess.stderr.on('data', (chunk: Buffer) => {
-    process.stderr.write(chunk)
+  server.listen(port, () => {
+    const url = `http://localhost:${port}`
+    console.log(`\n  Report available at ${url}`)
+    console.log('  Press Ctrl+C to exit\n')
+    if (autoOpen) open(url)
   })
 
-  // Forward signals to the child
-  process.on('SIGINT', () => {
-    viteProcess.kill('SIGINT')
-    process.exit(0)
-  })
-  process.on('SIGTERM', () => {
-    viteProcess.kill('SIGTERM')
-    process.exit(0)
-  })
+  process.on('SIGINT', () => { server.close(); process.exit(0) })
+  process.on('SIGTERM', () => { server.close(); process.exit(0) })
 
-  // Keep the parent alive
-  await new Promise<void>((_, reject) => {
-    viteProcess.on('exit', (code) => {
-      if (code !== 0 && code !== null) {
-        reject(new Error(`Vite exited with code ${code}`))
-      }
-    })
-  })
+  // Block forever — server runs until killed
+  await new Promise(() => {})
 }

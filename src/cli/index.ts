@@ -1,17 +1,18 @@
-#!/usr/bin/env node
-
 import { Command } from 'commander'
 import { writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import open from 'open'
 import type { CliOptions } from '../engine/types.ts'
 import { runPipeline, runCohortedPipeline } from '../engine/pipeline.ts'
 import { formatJson } from '../formatters/jsonFormatter.ts'
 import { formatLlm } from '../formatters/llmFormatter.ts'
+import { startServer } from './server.ts'
+
+const APP_URL = 'https://tomneyland.github.io/tokstat/other/'
 
 const program = new Command()
   .name('tokstat')
   .description('Visualize per-field token costs across a corpus of LLM-generated JSON')
-  .argument('<glob>', 'Glob pattern for JSON files')
+  .argument('[glob]', 'Glob pattern for JSON files')
   .option('--model <model>', 'Model for cost estimation', 'gpt-4o')
   .option('--format <fmt>', 'Output format: interactive, json, llm', 'interactive')
   .option('--tokenizer <enc>', 'Tokenizer encoding', 'auto')
@@ -24,6 +25,13 @@ const program = new Command()
 
 const opts = program.opts()
 const glob = program.args[0]
+
+// No glob — just open the web app
+if (!glob) {
+  console.log(`  Opening ${APP_URL}`)
+  await open(APP_URL)
+  process.exit(0)
+}
 
 const options: CliOptions = {
   glob,
@@ -77,22 +85,22 @@ switch (options.format) {
   }
 
   case 'interactive': {
-    // Interactive mode uses cohorting for mixed-schema corpora
     const cohortedOutput = runCohortedPipeline(options)
     log(`  ${cohortedOutput.cohorts.length} schema cohort(s) detected`)
 
     if (options.out) {
-      // Build self-contained HTML
+      // Fetch app HTML, inject data, write to file
       log('  Building self-contained HTML...')
-      const { buildSelfContainedHtml } = await import('./buildHtml.ts')
-      const outPath = resolve(options.out)
-      await buildSelfContainedHtml(cohortedOutput, outPath)
-      log(`  Written to ${outPath}`)
+      const resp = await fetch('https://tomneyland.github.io/tokstat/other/index.html')
+      const html = await resp.text()
+      const dataScript = `<script id="tokstat-data" type="application/json">${JSON.stringify(cohortedOutput)}</script>`
+      const injectedHtml = html.replace('</head>', `${dataScript}\n</head>`)
+      writeFileSync(options.out, injectedHtml, 'utf-8')
+      log(`  Written to ${options.out}`)
     } else {
-      // Start dev server
+      // Serve locally
       log('  Starting visualization server...')
-      const { startDevServer } = await import('./server.ts')
-      await startDevServer(cohortedOutput, options.port, !options.noOpen)
+      await startServer(cohortedOutput, options.port, !options.noOpen)
     }
     break
   }
