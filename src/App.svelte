@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import type { AnalysisNode } from './engine/types'
+  import type { AnalysisNode, AnalysisOutput } from './engine/types'
+  import { loadAnalysisData } from './lib/viz/dataLoader'
   import { mockOutput } from './lib/viz/mockData'
+  import DesignReference from './lib/reference/DesignReference.svelte'
   import TopBar from './lib/components/TopBar.svelte'
   import Sidebar from './lib/components/Sidebar.svelte'
   import Breadcrumb from './lib/components/Breadcrumb.svelte'
@@ -16,9 +18,11 @@
   let model = $state('gpt-4o')
   let sidebarCollapsed = $state(false)
   let searchQuery = $state('')
+  let showReference = $state(false)
 
-  // ── Data ──
-  const data = mockOutput
+  // ── Data: real engine output if available, otherwise mock ──
+  const realData = loadAnalysisData()
+  const data: AnalysisOutput = realData ?? mockOutput
   let drillPath = $state<AnalysisNode[]>([data.tree])
 
   let currentNode = $derived(drillPath[drillPath.length - 1])

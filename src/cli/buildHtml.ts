@@ -1,10 +1,7 @@
-import { build, type InlineConfig } from 'vite'
-import { svelte } from '@sveltejs/vite-plugin-svelte'
-import { viteSingleFile } from 'vite-plugin-singlefile'
+import { execFileSync } from 'node:child_process'
 import { resolve } from 'node:path'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { mkdtempSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import type { AnalysisOutput } from '../engine/types.ts'
 
@@ -13,44 +10,41 @@ const projectRoot = resolve(__dirname, '../..')
 
 /**
  * Build a self-contained HTML file with the analysis data embedded.
+ *
+ * Spawns `vite build` as a subprocess with TOKSTAT_DATA_PATH set,
+ * so the vite config's data plugin injects the JSON into the HTML.
  */
 export async function buildSelfContainedHtml(
   data: AnalysisOutput,
   outPath: string,
 ): Promise<void> {
-  const dataJson = JSON.stringify(data)
+  const dataDir = mkdtempSync(resolve(tmpdir(), 'tokstat-data-'))
+  const buildDir = mkdtempSync(resolve(tmpdir(), 'tokstat-out-'))
+  const dataPath = resolve(dataDir, 'tokstat-data.json')
 
-  // Build to a temp dir
-  const tmpDir = mkdtempSync(resolve(tmpdir(), 'tokstat-build-'))
+  // Write analysis data for the Vite plugin to read
+  writeFileSync(dataPath, JSON.stringify(data), 'utf-8')
 
-  const config: InlineConfig = {
-    root: projectRoot,
-    plugins: [
-      svelte(),
-      viteSingleFile(),
-    ],
-    define: {
-      '__TOKSTAT_DATA_JSON__': dataJson,
+  // Run vite build as a subprocess
+  execFileSync(
+    resolve(projectRoot, 'node_modules/.bin/vite'),
+    ['build', '--outDir', buildDir, '--emptyOutDir'],
+    {
+      cwd: projectRoot,
+      env: {
+        ...process.env,
+        TOKSTAT_DATA_PATH: dataPath,
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
     },
-    build: {
-      outDir: tmpDir,
-      emptyOutDir: true,
-      // Inline everything
-      assetsInlineLimit: Infinity,
-      cssCodeSplit: false,
-    },
-    logLevel: 'warn',
-  }
+  )
 
-  await build(config)
-
-  // Read the built HTML and inject the data as a script tag
-  const htmlPath = resolve(tmpDir, 'index.html')
-  let html = readFileSync(htmlPath, 'utf-8')
-
-  // Insert the data script tag before closing </head>
-  const dataScript = `<script id="tokstat-data" type="application/json">${dataJson}</script>`
-  html = html.replace('</head>', `${dataScript}\n</head>`)
-
+  // Read the built HTML and write to the output path
+  const htmlPath = resolve(buildDir, 'index.html')
+  const html = readFileSync(htmlPath, 'utf-8')
   writeFileSync(outPath, html, 'utf-8')
+
+  // Cleanup temp dirs
+  try { rmSync(dataDir, { recursive: true }) } catch { /* non-critical */ }
+  try { rmSync(buildDir, { recursive: true }) } catch { /* non-critical */ }
 }
