@@ -228,6 +228,10 @@
     return `${shortPath(node.path)}, ${node.type}, ${fmtTok(node.tokens.total.avg)}, ${fmtPct(node.fill_rate)} fill`
   }
 
+  function corpusTokens(node: any) {
+    return (node?.tokens?.total?.avg ?? 0) * (report?.summary?.file_count ?? 0)
+  }
+
   function handleShapeKeydown(event: KeyboardEvent, path: string, hasChildren: boolean) {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
@@ -272,20 +276,24 @@
 
       <div class="summary-strip">
         <div class="stat-block">
-          <span class="stat-label">Cost / Instance</span>
-          <span class="stat-value">{fmtUsd(report.summary.cost_per_instance)}</span>
+          <span class="stat-label">Corpus Cost</span>
+          <span class="stat-value">{fmtUsd(report.tree.cost.total_corpus)}</span>
+          <span class="stat-subvalue">{fmtUsd(report.summary.cost_per_instance)}/instance</span>
+        </div>
+        <div class="stat-block">
+          <span class="stat-label">Corpus Tokens</span>
+          <span class="stat-value">{fmtTok(corpusTokens(report.tree))}</span>
+          <span class="stat-subvalue">{fmtTok(report.tree.tokens.total.avg)}/instance</span>
         </div>
         <div class="stat-block">
           <span class="stat-label">Schema Overhead</span>
           <span class="stat-value">{fmtPct(report.summary.overhead_ratio)}</span>
+          <span class="stat-subvalue">{fmtTok(report.tree.tokens.schema_overhead * report.summary.file_count)} corpus</span>
         </div>
         <div class="stat-block">
           <span class="stat-label">Null Waste</span>
           <span class="stat-value">{fmtPct(report.summary.null_waste_ratio)}</span>
-        </div>
-        <div class="stat-block">
-          <span class="stat-label">Files</span>
-          <span class="stat-value">{report.summary.file_count}</span>
+          <span class="stat-subvalue">{fmtTok(report.tree.tokens.null_waste * report.summary.file_count)} corpus • {report.summary.file_count} files</span>
         </div>
       </div>
 
@@ -336,12 +344,14 @@
 
           <div class="overview-stats">
             <div class="overview-card">
-              <span class="stat-label">Avg Tokens / Inst</span>
-              <span class="stat-value">{fmtTok(report.tree.tokens.total.avg)}</span>
+              <span class="stat-label">Corpus Tokens</span>
+              <span class="stat-value">{fmtTok(corpusTokens(report.tree))}</span>
+              <span class="stat-subvalue">{fmtTok(report.tree.tokens.total.avg)}/instance</span>
             </div>
             <div class="overview-card">
               <span class="stat-label">Corpus Cost</span>
               <span class="stat-value">{fmtUsd(report.tree.cost.total_corpus)}</span>
+              <span class="stat-subvalue">{fmtUsd(report.tree.cost.per_instance)}/instance</span>
             </div>
           </div>
 
@@ -362,7 +372,7 @@
             {#each globalTopCostFields as node}
               <button class="overview-item" onclick={() => selectNode(node.path)}>
                 <span class="overview-item-path">{shortPath(node.path)}</span>
-                <span class="overview-item-meta">{fmtTok(node.tokens.total.avg)} • {fmtPct(node.fill_rate)} fill</span>
+                <span class="overview-item-meta">{fmtTok(corpusTokens(node))} corpus • {fmtTok(node.tokens.total.avg)}/inst • {fmtPct(node.fill_rate)} fill</span>
               </button>
             {/each}
           </div>
@@ -540,9 +550,13 @@
             {/if}
           </div>
           <div class="breadcrumb-right">
+            <span>{currentRoot ? fmtUsd(currentRoot.cost.total_corpus) : '$0'} corpus</span>
+            <span>•</span>
             <span>{currentRoot ? fmtUsd(currentRoot.cost.per_instance) : '$0'}/instance</span>
             <span>•</span>
-            <span>{currentRoot ? fmtTok(currentRoot.tokens.total.avg) : '0 tok'}</span>
+            <span>{currentRoot ? fmtTok(corpusTokens(currentRoot)) : '0 tok'} corpus</span>
+            <span>•</span>
+            <span>{currentRoot ? fmtTok(currentRoot.tokens.total.avg) : '0 tok'}/instance</span>
             <span>•</span>
             <span>{currentRoot ? `${maxDepth(currentRoot) - currentRoot.depth} levels` : '0 levels'}</span>
           </div>
@@ -581,7 +595,9 @@
             <div><span class="k">p95</span><span class="v">{fmtTok(selectedNode.tokens.total.p95)}</span></div>
             <div><span class="k">max</span><span class="v">{fmtTok(selectedNode.tokens.total.max)}</span></div>
             <div><span class="k">fill rate</span><span class="v">{fmtPct(selectedNode.fill_rate)}</span></div>
-            <div><span class="k">cost</span><span class="v">{fmtUsd(selectedNode.cost.per_instance)}</span></div>
+            <div><span class="k">/inst cost</span><span class="v">{fmtUsd(selectedNode.cost.per_instance)}</span></div>
+            <div><span class="k">corpus tok</span><span class="v">{fmtTok(corpusTokens(selectedNode))}</span></div>
+            <div><span class="k">corpus cost</span><span class="v">{fmtUsd(selectedNode.cost.total_corpus)}</span></div>
           </section>
 
           {#if selectedNode.array_stats}
@@ -646,8 +662,9 @@
           <div class="tooltip-title">{shortPath(hoveredNode.path)}</div>
           <span class="type-badge" data-type={hoveredNode.type}>{hoveredNode.type}</span>
         </div>
-        <div class="tooltip-sub">{fmtPct(hoveredNode.fill_rate)} fill • {fmtUsd(hoveredNode.cost.per_instance)}/inst</div>
+        <div class="tooltip-sub">{fmtPct(hoveredNode.fill_rate)} fill • {fmtUsd(hoveredNode.cost.total_corpus)} corpus • {fmtUsd(hoveredNode.cost.per_instance)}/inst</div>
         <div class="tooltip-grid">
+          <div><span class="k">corpus</span><span class="v">{fmtTok(corpusTokens(hoveredNode))}</span></div>
           <div><span class="k">avg</span><span class="v">{fmtTok(hoveredNode.tokens.total.avg)}</span></div>
           <div><span class="k">p95</span><span class="v">{fmtTok(hoveredNode.tokens.total.p95)}</span></div>
           <div><span class="k">schema</span><span class="v">{fmtTok(hoveredNode.tokens.schema_overhead)}</span></div>
@@ -666,7 +683,7 @@
   .app-shell {
     height: 100dvh;
     display: grid;
-    grid-template-rows: 56px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
     background: var(--bg-root);
   }
 
@@ -675,7 +692,8 @@
     grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: var(--space-4);
-    padding: 0 var(--space-4);
+    min-height: 64px;
+    padding: var(--space-1) var(--space-4);
     background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
     border-bottom: 1px solid var(--border-subtle);
     backdrop-filter: blur(8px);
@@ -734,6 +752,7 @@
     grid-template-columns: repeat(4, minmax(120px, 1fr));
     gap: var(--space-2);
     min-width: 0;
+    align-items: stretch;
   }
 
   .stat-block {
@@ -743,7 +762,10 @@
     padding: var(--space-2) var(--space-3);
     display: flex;
     flex-direction: column;
+    justify-content: center;
+    gap: 1px;
     min-width: 0;
+    overflow: hidden;
   }
 
   .stat-label {
@@ -762,6 +784,18 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.15;
+  }
+
+  .stat-subvalue {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+    line-height: 1.15;
   }
 
   .topbar-actions {
@@ -995,9 +1029,16 @@
     fill: var(--text-primary);
     font-family: var(--font-mono);
     font-size: 10px;
-    font-weight: 500;
+    font-weight: 600;
     letter-spacing: 0.01em;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+    paint-order: stroke fill;
+    stroke: rgba(8, 8, 12, 0.92);
+    stroke-width: 2.4px;
+    stroke-linejoin: round;
+    text-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.95),
+      0 0 8px rgba(0, 0, 0, 0.85),
+      0 2px 14px rgba(0, 0, 0, 0.7);
   }
 
   .breadcrumb-bar {
@@ -1485,7 +1526,7 @@
     .detail-panel {
       position: fixed;
       right: 0;
-      top: 56px;
+      top: 72px;
       bottom: 0;
       width: min(420px, 92vw);
       z-index: 30;
