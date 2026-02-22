@@ -2,6 +2,7 @@
 
 import { Command } from 'commander'
 import { writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import type { CliOptions } from '../engine/types.ts'
 import { runPipeline } from '../engine/pipeline.ts'
 import { formatJson } from '../formatters/jsonFormatter.ts'
@@ -36,27 +37,62 @@ const options: CliOptions = {
   sampleValues: parseInt(opts.sampleValues, 10),
 }
 
-const output = runPipeline(options)
+const isQuiet = options.format === 'json' || options.format === 'llm'
 
-let formatted: string
-
-switch (options.format) {
-  case 'json':
-    formatted = formatJson(output)
-    break
-  case 'llm':
-    formatted = formatLlm(output)
-    break
-  case 'interactive':
-    console.log('Interactive mode not yet implemented.')
-    process.exit(0)
-  default:
-    throw new Error(`Unknown format: ${options.format}`)
+function log(msg: string): void {
+  if (!isQuiet) {
+    process.stderr.write(msg + '\n')
+  }
 }
 
-if (options.out) {
-  writeFileSync(options.out, formatted, 'utf-8')
-  console.log(`Output written to ${options.out}`)
-} else {
-  console.log(formatted)
+log(`  Analyzing ${options.glob}...`)
+
+const output = runPipeline(options)
+
+log(`  ${output.summary.file_count} files, ${Math.round(output.summary.avg_tokens_per_instance)} avg tokens/instance`)
+log(`  ${Math.round(output.summary.overhead_ratio * 100)}% schema overhead, ${Math.round(output.summary.null_waste_ratio * 100)}% null waste`)
+log(`  ${output.insights.length} insights detected`)
+
+switch (options.format) {
+  case 'json': {
+    const formatted = formatJson(output)
+    if (options.out) {
+      writeFileSync(options.out, formatted, 'utf-8')
+      console.log(`Output written to ${options.out}`)
+    } else {
+      console.log(formatted)
+    }
+    break
+  }
+
+  case 'llm': {
+    const formatted = formatLlm(output)
+    if (options.out) {
+      writeFileSync(options.out, formatted, 'utf-8')
+      console.log(`Output written to ${options.out}`)
+    } else {
+      console.log(formatted)
+    }
+    break
+  }
+
+  case 'interactive': {
+    if (options.out) {
+      // Build self-contained HTML
+      log('  Building self-contained HTML...')
+      const { buildSelfContainedHtml } = await import('./buildHtml.ts')
+      const outPath = resolve(options.out)
+      await buildSelfContainedHtml(output, outPath)
+      log(`  Written to ${outPath}`)
+    } else {
+      // Start dev server
+      log('  Starting visualization server...')
+      const { startDevServer } = await import('./server.ts')
+      await startDevServer(output, options.port, !options.noOpen)
+    }
+    break
+  }
+
+  default:
+    throw new Error(`Unknown format: ${options.format}`)
 }

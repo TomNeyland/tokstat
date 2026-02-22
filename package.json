@@ -1,12 +1,20 @@
 {
   "name": "tokstat",
   "version": "0.0.1",
-  "description": "WinDirStat for your LLM-generated JSON",
-  "private": true,
+  "description": "Visualize per-field token costs across a corpus of LLM-generated JSON",
   "type": "module",
   "bin": {
     "tokstat": "./src/cli/index.ts"
   },
+  "files": [
+    "src/",
+    "index.html",
+    "vite.config.ts",
+    "svelte.config.js",
+    "tsconfig.json",
+    "tsconfig.app.json",
+    "tsconfig.node.json"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -34,6 +42,8 @@
     "d3-interpolate": "^3.0.1",
     "d3-scale": "^4.0.2",
     "fast-glob": "^3.3.3",
-    "js-tiktoken": "^1.0.21"
+    "js-tiktoken": "^1.0.21",
+    "open": "^11.0.0",
+    "vite-plugin-singlefile": "^2.3.0"
   }
 }
